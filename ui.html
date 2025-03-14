@@ -1,17 +1,47 @@
-<h2>Rectangle Creator</h2>
-<p>Count: <input id="count" type="number" value="5"></p>
-<button id="create">Create</button>
-<button id="cancel">Cancel</button>
-<script>
-
-document.getElementById('create').onclick = () => {
-  const textbox = document.getElementById('count');
-  const count = parseInt(textbox.value, 10);
-  parent.postMessage({ pluginMessage: { type: 'create-shapes', count } }, '*')
-}
-
-document.getElementById('cancel').onclick = () => {
-  parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
-}
-
-</script>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Inter, sans-serif;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .title {
+      font-weight: 500;
+      margin: 0;
+      color: #333;
+    }
+    .description {
+      margin: 0;
+      color: #666;
+      font-size: 14px;
+    }
+    .type {
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h3 class="title" id="name">Select a component</h3>
+    <p class="type" id="type"></p>
+    <p class="description" id="description">No component selected</p>
+  </div>
+  <script>
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      
+      if (msg.type === 'update-description') {
+        document.getElementById('name').textContent = msg.name || 'Select a component';
+        document.getElementById('type').textContent = msg.nodeType;
+        document.getElementById('description').textContent = msg.description;
+      }
+    };
+  </script>
+</body>
+</html>

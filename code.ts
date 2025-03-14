@@ -1,37 +1,74 @@
-// This plugin will open a window to prompt the user to enter a number, and
-// it will then create that many rectangles on the screen.
+// This plugin shows the description of the selected component
+figma.showUI(__html__, { width: 300, height: 200 });
 
-// This file holds the main code for plugins. Code in this file has access to
-// the *figma document* via the figma global object.
-// You can access browser APIs in the <script> tag inside "ui.html" which has a
-// full browser environment (See https://www.figma.com/plugin-docs/how-plugins-run).
+interface DescriptionMessage {
+  type: 'update-description';
+  name: string;
+  description: string;
+  nodeType: string;
+}
 
-// This shows the HTML page in "ui.html".
-figma.showUI(__html__);
-
-// Calls to "parent.postMessage" from within the HTML page will trigger this
-// callback. The callback will be passed the "pluginMessage" property of the
-// posted message.
-figma.ui.onmessage =  (msg: {type: string, count: number}) => {
-  // One way of distinguishing between different types of messages sent from
-  // your HTML page is to use an object with a "type" property like this.
-  if (msg.type === 'create-shapes') {
-    // This plugin creates rectangles on the screen.
-    const numberOfRectangles = msg.count;
-
-    const nodes: SceneNode[] = [];
-    for (let i = 0; i < numberOfRectangles; i++) {
-      const rect = figma.createRectangle();
-      rect.x = i * 150;
-      rect.fills = [{ type: 'SOLID', color: { r: 1, g: 0.5, b: 0 } }];
-      figma.currentPage.appendChild(rect);
-      nodes.push(rect);
+figma.on("selectionchange", () => {
+  const selection = figma.currentPage.selection;
+  let message: DescriptionMessage;
+  
+  if (selection.length === 1) {
+    const node = selection[0];
+    
+    if (node.type === "COMPONENT") {
+      message = {
+        type: "update-description",
+        name: node.name,
+        description: node.description || "No description available",
+        nodeType: node.type
+      };
+    } else if (node.type === "COMPONENT_SET") {
+      message = {
+        type: "update-description",
+        name: node.name,
+        description: node.description || "No description available",
+        nodeType: node.type
+      };
+    } else if (node.type === "INSTANCE") {
+      const mainComponent = node.mainComponent;
+      message = {
+        type: "update-description",
+        name: node.name,
+        description: mainComponent ? (mainComponent.description || "No description available") : "No description available",
+        nodeType: node.type
+      };
+    } else {
+      message = {
+        type: "update-description",
+        name: node.name,
+        description: "Please select a component, component set, or instance",
+        nodeType: node.type
+      };
     }
-    figma.currentPage.selection = nodes;
-    figma.viewport.scrollAndZoomIntoView(nodes);
+    
+    figma.ui.postMessage(message);
+  } else if (selection.length === 0) {
+    message = {
+      type: "update-description",
+      name: "",
+      description: "No selection",
+      nodeType: "none"
+    };
+    figma.ui.postMessage(message);
+  } else {
+    message = {
+      type: "update-description",
+      name: "",
+      description: "Multiple items selected. Please select a single component, component set, or instance.",
+      nodeType: "multiple"
+    };
+    figma.ui.postMessage(message);
   }
+});
 
-  // Make sure to close the plugin when you're done. Otherwise the plugin will
-  // keep running, which shows the cancel button at the bottom of the screen.
-  figma.closePlugin();
+// Handle messages from the UI
+figma.ui.onmessage = msg => {
+  if (msg.type === 'close') {
+    figma.closePlugin();
+  }
 };
