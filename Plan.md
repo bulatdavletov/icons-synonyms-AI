@@ -5,23 +5,26 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
 
 ## Core Features
 1. Description Management
-   - Read existing component descriptions without data loss
-   - Append new synonyms to existing descriptions
-   - Parse and maintain description structure
+   - Read existing component descriptions
+   - Add new synonyms to descriptions
    - Handle both single components and component sets
 
 2. AI Integration
    - Send icon data to AI provider
-   - Process and format AI responses
-   - Customizable prompt templates
-   - Handle API rate limits and errors
+   - Process AI responses
+   - Handle API errors
 
-3. User Interface (Using Figma Native UI)
-   - Preview suggestions before applying
-   - Edit suggestions inline
-   - Batch processing interface
-   - Progress indicators
-   - Custom prompt editor
+3. Icon Export
+   - Convert Figma icons to images
+   - Handle different icon styles and formats
+   - Optimize images for AI processing
+
+4. User Interface (Using @create-figma-plugin/ui)
+   - Preview suggestions using Figma-like components
+   - Edit suggestions with native-like UI elements
+   - Progress indicators matching Figma's style
+   - Custom prompt editor with consistent UI
+   - Support for both light and dark themes
 
 ## Development Phases
 
@@ -29,24 +32,32 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
 - [ ] Implement component description reading
 - [ ] Create description parsing utilities
 - [ ] Design description update mechanism
-- [ ] Add validation for existing descriptions
-- [ ] Test with various component types
+- [ ] Test with components
 
 ### Phase 2: AI Integration
 - [ ] Set up AI provider connection
-- [ ] Implement basic prompt template
+- [ ] Implement prompt template
 - [ ] Create response parsing
 - [ ] Add error handling
 - [ ] Test with sample icons
 
-### Phase 3: User Interface
-- [ ] Set up Figma native UI components
-- [ ] Create suggestion preview interface
-- [ ] Add inline editing capability
+### Phase 3: Icon Export
+- [ ] Implement icon-to-image conversion
+- [ ] Add support for various icon styles (filled, outlined, etc.)
+- [ ] Create image optimization pipeline
+- [ ] Handle batch export for multiple icons
+- [ ] Add export error handling
+- [ ] Test with different icon types and sizes
+
+### Phase 4: User Interface
+- [ ] Set up @create-figma-plugin/ui and Preact
+- [ ] Create suggestion preview interface with Figma-like components
+- [ ] Add inline editing capability with native-like inputs
 - [ ] Implement batch selection interface
 - [ ] Add progress indicators
+- [ ] Implement theme support (light/dark)
 
-### Phase 4: Advanced Features
+### Phase 5: Advanced Features
 - [ ] Add custom prompt editor
 - [ ] Implement batch processing
 
@@ -55,12 +66,16 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
 ```
 icons-synonyms-AI/
 ├── code.ts              # Main plugin logic
-├── ui.html             # Plugin interface
+├── ui.tsx              # Plugin interface (Preact/create-figma-plugin-ui)
 ├── manifest.json       # Plugin configuration
-├── styles.css         # UI styling
+├── styles.css         # Additional UI styling
 ├── src/
 │   ├── ai-service.ts   # AI API integration
 │   ├── description-manager.ts  # Description handling
+│   ├── components/    # UI components
+│   │   ├── Preview.tsx
+│   │   ├── Editor.tsx
+│   │   └── PromptEditor.tsx
 │   └── utils.ts        # Helper functions
 └── types/
     └── index.d.ts      # Type definitions
@@ -97,12 +112,13 @@ icons-synonyms-AI/
 5. Add batch processing support
 
 ## Technical Requirements
-- Use Figma's native UI components
+- Use @create-figma-plugin/ui for consistent Figma-like interface
 - Preserve existing component descriptions
 - Support batch processing
 - Handle API rate limits
 - Maintain undo/redo history
 - Support custom prompt templates
+- Ensure proper theme handling (light/dark)
 
 ## Notes
 - Always preview before applying changes
