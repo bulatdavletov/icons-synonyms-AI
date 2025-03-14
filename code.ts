@@ -1,11 +1,33 @@
 // This plugin shows the description of the selected component
-figma.showUI(__html__, { width: 300, height: 200 });
+figma.showUI(__html__, { width: 300, height: 300 });
 
 interface DescriptionMessage {
   type: 'update-description';
   name: string;
   description: string;
   nodeType: string;
+}
+
+interface UpdateDescriptionMessage {
+  type: 'update-component-description';
+  description: string;
+}
+
+interface CloseMessage {
+  type: 'close';
+}
+
+type Message = DescriptionMessage | UpdateDescriptionMessage | CloseMessage;
+
+function updateDescription(node: ComponentNode | ComponentSetNode, description: string) {
+  node.description = description;
+  // Send updated description back to UI
+  figma.ui.postMessage({
+    type: "update-description",
+    name: node.name,
+    description: node.description,
+    nodeType: node.type
+  });
 }
 
 figma.on("selectionchange", () => {
@@ -67,8 +89,19 @@ figma.on("selectionchange", () => {
 });
 
 // Handle messages from the UI
-figma.ui.onmessage = msg => {
+figma.ui.onmessage = (msg: Message) => {
   if (msg.type === 'close') {
     figma.closePlugin();
+  } else if (msg.type === 'update-component-description') {
+    const selection = figma.currentPage.selection;
+    
+    if (selection.length === 1) {
+      const node = selection[0];
+      
+      if (node.type === "COMPONENT" || node.type === "COMPONENT_SET") {
+        updateDescription(node, msg.description);
+        figma.notify("Description updated successfully!");
+      }
+    }
   }
 };

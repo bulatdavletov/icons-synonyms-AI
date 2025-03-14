@@ -29,10 +29,8 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
 ## Development Phases
 
 ### Phase 1: Description Management
-- [ ] Implement component description reading
-- [ ] Create description parsing utilities
-- [ ] Design description update mechanism
-- [ ] Test with components
+- [x] Read description from component, component set, or instance
+- [x] Edit description for a single component, component set
 
 ### Phase 2: AI Integration
 - [ ] Set up AI provider connection

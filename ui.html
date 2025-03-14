@@ -8,7 +8,7 @@
     .container {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
     }
     .title {
       font-weight: 500;
@@ -24,6 +24,35 @@
       font-size: 12px;
       color: #999;
     }
+    .edit-section {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .edit-description {
+      width: 100%;
+      min-height: 60px;
+      padding: 8px;
+      border: 1px solid #e5e5e5;
+      border-radius: 4px;
+      font-family: Inter, sans-serif;
+      font-size: 14px;
+      resize: vertical;
+    }
+    .button {
+      background: #18A0FB;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .button:disabled {
+      background: #CCCCCC;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -31,8 +60,28 @@
     <h3 class="title" id="name">Select a component</h3>
     <p class="type" id="type"></p>
     <p class="description" id="description">No component selected</p>
+    
+    <div class="edit-section">
+      <textarea 
+        class="edit-description" 
+        id="descriptionInput" 
+        placeholder="Enter new description..."
+      ></textarea>
+      <button class="button" id="applyButton" disabled>Apply Description</button>
+    </div>
   </div>
   <script>
+    const descriptionInput = document.getElementById('descriptionInput');
+    const applyButton = document.getElementById('applyButton');
+    let currentNodeType = 'none';
+
+    // Enable/disable apply button based on selection
+    function updateButtonState() {
+      const isEditable = currentNodeType === 'COMPONENT' || 
+                        currentNodeType === 'COMPONENT_SET';
+      applyButton.disabled = !isEditable;
+    }
+
     window.onmessage = (event) => {
       const msg = event.data.pluginMessage;
       
@@ -40,7 +89,25 @@
         document.getElementById('name').textContent = msg.name || 'Select a component';
         document.getElementById('type').textContent = msg.nodeType;
         document.getElementById('description').textContent = msg.description;
+        
+        // Update input field with current description
+        descriptionInput.value = msg.description;
+        
+        // Update button state
+        currentNodeType = msg.nodeType;
+        updateButtonState();
       }
+    };
+
+    // Handle apply button click
+    applyButton.onclick = () => {
+      const newDescription = descriptionInput.value;
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'update-component-description',
+          description: newDescription 
+        }
+      }, '*');
     };
   </script>
 </body>
