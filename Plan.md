@@ -39,6 +39,7 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
 - [x] Add error handling
 - [x] Add hardcoded API key for testing
 - [x] Update to use current OpenAI models (gpt-4o)
+- [x] Move API key to separate gitignored file
 - [ ] Test with sample icons
 
 ### Phase 3: Icon Export
@@ -71,14 +72,18 @@ icons-synonyms-AI/
 ├── manifest.json        # Plugin configuration
 ├── src/
 │   ├── ai-service.ts    # AI API integration
+│   ├── api-keys.ts      # API keys (gitignored)
+│   ├── api-keys.template.ts # Template for API keys
 │   ├── icon-exporter.ts # Icon export functionality
 │   ├── components/      # UI components
 │   │   ├── Preview.tsx
 │   │   ├── Editor.tsx
+│   │   ├── BatchTable.tsx  # New component for batch processing
 │   │   └── PromptEditor.tsx
 │   └── utils.ts         # Helper functions
 ├── esbuild.config.js    # esbuild configuration
 ├── tsconfig.json        # TypeScript configuration
+├── batch-processing-plan.md # Detailed plan for batch processing
 └── package.json         # Project dependencies and scripts
 ```
 
@@ -122,7 +127,9 @@ icons-synonyms-AI/
 6. ✅ Fix module bundling with esbuild
 7. ✅ Implement hardcoded API key for testing
 8. ✅ Update to use current OpenAI models
-9. [ ] Add batch processing support
+9. ✅ Move API key to separate gitignored file
+10. ✅ Create detailed batch processing plan
+11. [ ] Implement batch processing UI and functionality
 
 ## Technical Requirements
 - Use native HTML/CSS/JS for consistent Figma-like interface
@@ -145,7 +152,8 @@ icons-synonyms-AI/
 - Structured prompt template focusing on visual appearance and use cases
 - JSON response format for easy parsing
 - Error handling for API failures
-- Hardcoded API key for testing with optional user-provided key
+- API key stored in separate gitignored file
+- Template file provided for API key setup
 - Local storage for API key persistence
 
 ### Multi-File Structure
@@ -154,6 +162,16 @@ icons-synonyms-AI/
 - Modular code organization with separate files for different concerns
 - TypeScript bundled into a single IIFE for Figma compatibility using esbuild
 
+### Batch Processing
+- Sequential processing of components one by one
+- Table-based UI showing component name, status, and actions
+- Progress tracking with visual indicators
+- Ability to cancel processing
+- Summary statistics after batch completion
+- Maintain synonym grouping (Objects, Meanings, Shapes, Other)
+- Individual component editing within batch interface
+- Detailed implementation plan in batch-processing-plan.md
+
 ## Notes
 - Always preview before applying changes
 - Keep original descriptions intact
@@ -161,7 +179,7 @@ icons-synonyms-AI/
 - Consider caching for batch operations
 - Support offline mode for saved suggestions 
 - For Figma plugins, use bundlers like esbuild instead of plain TypeScript compilation
-- Hardcoded API key is for testing only and should be replaced with a proper API key management system in production
+- API keys should be kept in gitignored files and not committed to the repository
 
 ## Recent fixes
 - Updated the AI model from deprecated `gpt-4-vision-preview` to current `gpt-4o`
@@ -175,6 +193,8 @@ icons-synonyms-AI/
 - Implemented "Synonyms: x, y, z" format for adding synonyms to descriptions
 - Improved handling of empty descriptions with better visual indicators
 - Removed API key input field and related UI elements for a cleaner interface
+- Moved API key to separate gitignored file for better security
+- Created API key template file for easier setup
 
 ## Current status
 - Plugin can detect component selections correctly
@@ -184,4 +204,6 @@ icons-synonyms-AI/
 - Users can now select specific synonyms and apply them to component descriptions
 - Empty descriptions are handled gracefully with visual indicators
 - UI is streamlined with only essential elements for better user experience
-- Next focus areas: batch processing and custom prompt editor
+- API key is securely stored in a separate gitignored file
+- Detailed batch processing plan created
+- Next focus areas: implementing batch processing UI and functionality
