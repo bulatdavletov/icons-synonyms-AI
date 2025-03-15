@@ -9,15 +9,15 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
    - Add new synonyms to descriptions
    - Handle both single components and component sets
 
-2. AI Integration
-   - Send icon data to AI provider
-   - Process AI responses
-   - Handle API errors
-
-3. Icon Export
+2. Icon Export
    - Convert Figma icons to images
    - Handle different icon styles and formats
    - Optimize images for AI processing
+
+3. AI Integration
+   - Send icon data to AI provider
+   - Process AI responses
+   - Handle API errors
 
 4. User Interface (Using @create-figma-plugin/ui)
    - Preview suggestions using Figma-like components
@@ -33,26 +33,28 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
 - [x] Edit description for a single component, component set
 
 ### Phase 2: AI Integration
-- [ ] Set up AI provider connection
-- [ ] Implement prompt template
-- [ ] Create response parsing
-- [ ] Add error handling
+- [x] Set up AI provider connection
+- [x] Implement prompt template
+- [x] Create response parsing
+- [x] Add error handling
+- [x] Add hardcoded API key for testing
+- [x] Update to use current OpenAI models (gpt-4o)
 - [ ] Test with sample icons
 
 ### Phase 3: Icon Export
-- [ ] Implement icon-to-image conversion
-- [ ] Add support for various icon styles (filled, outlined, etc.)
-- [ ] Create image optimization pipeline
+- [x] Implement icon-to-image conversion
+- [x] Add support for various icon styles (filled, outlined, etc.)
+- [x] Create image optimization pipeline
 - [ ] Handle batch export for multiple icons
-- [ ] Add export error handling
+- [x] Add export error handling
 - [ ] Test with different icon types and sizes
 
 ### Phase 4: User Interface
 - [ ] Set up @create-figma-plugin/ui and Preact
-- [ ] Create suggestion preview interface with Figma-like components
-- [ ] Add inline editing capability with native-like inputs
+- [x] Create suggestion preview interface with Figma-like components
+- [x] Add inline editing capability with native-like inputs
 - [ ] Implement batch selection interface
-- [ ] Add progress indicators
+- [x] Add progress indicators
 - [ ] Implement theme support (light/dark)
 
 ### Phase 5: Advanced Features
@@ -64,20 +66,29 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
 ```
 icons-synonyms-AI/
 ├── code.ts              # Main plugin logic
-├── ui.tsx              # Plugin interface (Preact/create-figma-plugin-ui)
-├── manifest.json       # Plugin configuration
-├── styles.css         # Additional UI styling
+├── code.js              # Bundled JavaScript (from esbuild)
+├── ui.html              # Plugin interface (HTML/CSS/JS)
+├── manifest.json        # Plugin configuration
 ├── src/
-│   ├── ai-service.ts   # AI API integration
-│   ├── description-manager.ts  # Description handling
-│   ├── components/    # UI components
+│   ├── ai-service.ts    # AI API integration
+│   ├── icon-exporter.ts # Icon export functionality
+│   ├── components/      # UI components
 │   │   ├── Preview.tsx
 │   │   ├── Editor.tsx
 │   │   └── PromptEditor.tsx
-│   └── utils.ts        # Helper functions
-└── types/
-    └── index.d.ts      # Type definitions
+│   └── utils.ts         # Helper functions
+├── esbuild.config.js    # esbuild configuration
+├── tsconfig.json        # TypeScript configuration
+└── package.json         # Project dependencies and scripts
 ```
+
+## Build Process
+1. TypeScript files are bundled using esbuild
+2. The main entry point is `code.ts`, which gets bundled into `code.js`
+3. The UI is defined in `ui.html`
+4. Module imports are bundled into a single IIFE (Immediately Invoked Function Expression)
+5. Build command: `npm run build`
+6. Watch mode: `npm run watch`
 
 ## Component Description Format
 ```json
@@ -103,14 +114,18 @@ icons-synonyms-AI/
 7. Changes are saved to component descriptions
 
 ## Next Steps
-1. Set up project with Figma native UI components
-2. Implement description reading/writing
-3. Create basic AI integration
-4. Build suggestion preview interface
-5. Add batch processing support
+1. ✅ Set up project with Figma native UI components
+2. ✅ Implement description reading/writing
+3. ✅ Create basic AI integration
+4. ✅ Build suggestion preview interface
+5. ✅ Test multi-file structure and build process
+6. ✅ Fix module bundling with esbuild
+7. ✅ Implement hardcoded API key for testing
+8. ✅ Update to use current OpenAI models
+9. [ ] Add batch processing support
 
 ## Technical Requirements
-- Use @create-figma-plugin/ui for consistent Figma-like interface
+- Use native HTML/CSS/JS for consistent Figma-like interface
 - Preserve existing component descriptions
 - Support batch processing
 - Handle API rate limits
@@ -118,9 +133,55 @@ icons-synonyms-AI/
 - Support custom prompt templates
 - Ensure proper theme handling (light/dark)
 
+## Implementation Details
+
+### Icon Export Format
+- Using PNG format with base64 encoding for OpenAI Vision API
+- Exporting at 2x scale for better quality
+- Optimizing icon selection by preferring components over instances
+
+### AI Integration
+- Using OpenAI GPT-4o API for icon analysis (updated from gpt-4-vision-preview)
+- Structured prompt template focusing on visual appearance and use cases
+- JSON response format for easy parsing
+- Error handling for API failures
+- Hardcoded API key for testing with optional user-provided key
+- Local storage for API key persistence
+
+### Multi-File Structure
+- Main plugin code in `code.ts`
+- UI in `ui.html`
+- Modular code organization with separate files for different concerns
+- TypeScript bundled into a single IIFE for Figma compatibility using esbuild
+
 ## Notes
 - Always preview before applying changes
 - Keep original descriptions intact
 - Track AI-generated vs user-edited synonyms
 - Consider caching for batch operations
 - Support offline mode for saved suggestions 
+- For Figma plugins, use bundlers like esbuild instead of plain TypeScript compilation
+- Hardcoded API key is for testing only and should be replaced with a proper API key management system in production
+
+## Recent fixes
+- Updated the AI model from deprecated `gpt-4-vision-preview` to current `gpt-4o`
+- Added console logging to display the final message sent to OpenAI API and the response received
+- Fixed localStorage access issues with try-catch blocks
+- Improved selection handling with centralized `sendSelectionToUI()` function
+- Added UI ready message to ensure proper initialization
+- Simplified UI to focus only on Generate Synonyms functionality
+- Organized generated synonyms into meaningful groups (Objects, Meanings, Shapes, Other)
+- Added ability to select specific synonyms and apply them to component descriptions
+- Implemented "Synonyms: x, y, z" format for adding synonyms to descriptions
+- Improved handling of empty descriptions with better visual indicators
+- Removed API key input field and related UI elements for a cleaner interface
+
+## Current status
+- Plugin can detect component selections correctly
+- AI integration is working with the latest OpenAI model
+- Debug logging is in place to help troubleshoot API interactions
+- Basic UI functionality is implemented with grouped synonyms for better organization
+- Users can now select specific synonyms and apply them to component descriptions
+- Empty descriptions are handled gracefully with visual indicators
+- UI is streamlined with only essential elements for better user experience
+- Next focus areas: batch processing and custom prompt editor

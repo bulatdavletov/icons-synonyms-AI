@@ -24,22 +24,6 @@
       font-size: 12px;
       color: #999;
     }
-    .edit-section {
-      margin-top: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .edit-description {
-      width: 100%;
-      min-height: 60px;
-      padding: 8px;
-      border: 1px solid #e5e5e5;
-      border-radius: 4px;
-      font-family: Inter, sans-serif;
-      font-size: 14px;
-      resize: vertical;
-    }
     .button {
       background: #18A0FB;
       color: white;
@@ -48,66 +32,560 @@
       border-radius: 6px;
       font-weight: 500;
       cursor: pointer;
+      width: 100%;
     }
     .button:disabled {
       background: #CCCCCC;
       cursor: not-allowed;
     }
+    .section {
+      margin-top: 10px;
+    }
+    .synonyms-group {
+      margin-top: 16px;
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .group-title {
+      font-weight: 500;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    .synonyms-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .synonym-tag {
+      background: #F0F0F0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .synonym-tag:hover {
+      background: #E0E0E0;
+    }
+    .synonym-tag.selected {
+      background: #D1E9FF;
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .spinner {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #18A0FB;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      color: #D32F2F;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    .result-box {
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid #e5e5e5;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .copy-button {
+      margin-top: 8px;
+      background: #F0F0F0;
+      color: #333;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .copy-button:hover {
+      background: #E0E0E0;
+    }
+    .component-info {
+      padding: 10px;
+      background: #f8f8f8;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+    .actions-container {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .apply-button {
+      background: #4CAF50;
+      flex: 1;
+    }
+    .select-all-button {
+      background: #F0F0F0;
+      color: #333;
+      flex: 1;
+    }
+    .select-all-button:hover {
+      background: #E0E0E0;
+    }
+    .selected-count {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h3 class="title" id="name">Select a component</h3>
-    <p class="type" id="type"></p>
-    <p class="description" id="description">No component selected</p>
+    <div class="component-info">
+      <h3 class="title" id="name">Select a component</h3>
+      <p class="type" id="type"></p>
+      <p class="description" id="description">No component selected</p>
+    </div>
     
-    <div class="edit-section">
-      <textarea 
-        class="edit-description" 
-        id="descriptionInput" 
-        placeholder="Enter new description..."
-      ></textarea>
-      <button class="button" id="applyButton" disabled>Apply Description</button>
+    <div class="section">
+      <button class="button" id="generateButton">Generate Synonyms</button>
+      
+      <div id="loadingSection" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <span>Generating synonyms...</span>
+      </div>
+      
+      <div id="errorSection" class="error" style="display: none;"></div>
+      
+      <div id="synonymsSection" style="display: none;">
+        <h4 class="title">Generated Synonyms</h4>
+        <p class="description">Click on synonyms to select/deselect them</p>
+        <div class="selected-count" id="selectedCount">0 synonyms selected</div>
+        
+        <!-- Object Group -->
+        <div class="synonyms-group">
+          <div class="group-title">Objects</div>
+          <div class="synonyms-list" id="objectsList"></div>
+        </div>
+        
+        <!-- Meaning Group -->
+        <div class="synonyms-group">
+          <div class="group-title">Meanings</div>
+          <div class="synonyms-list" id="meaningsList"></div>
+        </div>
+        
+        <!-- Shapes Group -->
+        <div class="synonyms-group">
+          <div class="group-title">Shapes</div>
+          <div class="synonyms-list" id="shapesList"></div>
+        </div>
+        
+        <!-- Other Group -->
+        <div class="synonyms-group">
+          <div class="group-title">Other</div>
+          <div class="synonyms-list" id="othersList"></div>
+        </div>
+        
+        <div class="actions-container">
+          <button class="button select-all-button" id="selectAllButton">Select All</button>
+          <button class="button apply-button" id="applyButton">Apply to Description</button>
+        </div>
+        
+        <button class="copy-button" id="copyButton">Copy All to Clipboard</button>
+      </div>
     </div>
   </div>
   <script>
-    const descriptionInput = document.getElementById('descriptionInput');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const generateButton = document.getElementById('generateButton');
+    const loadingSection = document.getElementById('loadingSection');
+    const errorSection = document.getElementById('errorSection');
+    const synonymsSection = document.getElementById('synonymsSection');
+    const objectsList = document.getElementById('objectsList');
+    const meaningsList = document.getElementById('meaningsList');
+    const shapesList = document.getElementById('shapesList');
+    const othersList = document.getElementById('othersList');
+    const copyButton = document.getElementById('copyButton');
+    const selectAllButton = document.getElementById('selectAllButton');
     const applyButton = document.getElementById('applyButton');
+    const selectedCount = document.getElementById('selectedCount');
+    
     let currentNodeType = 'none';
+    let generatedSynonyms = [];
+    let selectedSynonyms = new Set();
+    let currentDescription = '';
 
-    // Enable/disable apply button based on selection
+    // Common objects that might appear in icons
+    const objectKeywords = ['folder', 'file', 'document', 'trash', 'bin', 'heart', 'star', 'mail', 'email', 
+                          'envelope', 'phone', 'clock', 'time', 'calendar', 'user', 'person', 'profile', 
+                          'gear', 'settings', 'cog', 'lock', 'key', 'shield', 'bell', 'notification', 
+                          'camera', 'image', 'photo', 'picture', 'home', 'house', 'building'];
+                          
+    // Common meanings/actions
+    const meaningKeywords = ['delete', 'remove', 'add', 'create', 'edit', 'modify', 'save', 'store', 
+                           'like', 'favorite', 'send', 'receive', 'call', 'contact', 'schedule', 
+                           'plan', 'configure', 'setup', 'secure', 'protect', 'alert', 'warn', 
+                           'capture', 'view', 'display', 'navigate', 'search', 'find'];
+                           
+    // Common shapes
+    const shapeKeywords = ['circle', 'square', 'rectangle', 'triangle', 'diamond', 'hexagon', 
+                         'oval', 'line', 'arrow', 'curve', 'dot', 'point', 'cross', 'x', 
+                         'plus', 'minus', 'check', 'checkmark', 'star', 'heart'];
+
+    // Enable/disable generate button based on selection
     function updateButtonState() {
-      const isEditable = currentNodeType === 'COMPONENT' || 
-                        currentNodeType === 'COMPONENT_SET';
-      applyButton.disabled = !isEditable;
+      // Enable generate button if we have a valid selection
+      generateButton.disabled = (currentNodeType !== 'COMPONENT' && 
+                               currentNodeType !== 'COMPONENT_SET' && 
+                               currentNodeType !== 'INSTANCE');
+    }
+    
+    // Update the selected count display
+    function updateSelectedCount() {
+      selectedCount.textContent = `${selectedSynonyms.size} synonyms selected`;
+    }
+    
+    // Try to load API key from localStorage
+    try {
+      if (localStorage && localStorage.getItem('openai_api_key')) {
+        // We still use the stored API key, but don't show the input field
+        const storedApiKey = localStorage.getItem('openai_api_key');
+      }
+    } catch (e) {
+      console.warn('localStorage is not available:', e);
+      // Continue without localStorage
+    }
+
+    // Send a message to the plugin that the UI is ready
+    window.onload = () => {
+      console.log('UI is ready');
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'ui-ready'
+        }
+      }, '*');
+    };
+
+    // Categorize a synonym into one of the groups
+    function categorize(synonym) {
+      const lowerSynonym = synonym.toLowerCase();
+      
+      if (objectKeywords.some(keyword => lowerSynonym.includes(keyword))) {
+        return 'object';
+      }
+      
+      if (meaningKeywords.some(keyword => lowerSynonym.includes(keyword))) {
+        return 'meaning';
+      }
+      
+      if (shapeKeywords.some(keyword => lowerSynonym.includes(keyword))) {
+        return 'shape';
+      }
+      
+      return 'other';
+    }
+
+    // Create a synonym tag with selection functionality
+    function createSynonymTag(synonym) {
+      const tag = document.createElement('div');
+      tag.className = 'synonym-tag';
+      tag.textContent = synonym;
+      
+      // Add click handler for selection
+      tag.addEventListener('click', () => {
+        if (selectedSynonyms.has(synonym)) {
+          selectedSynonyms.delete(synonym);
+          tag.classList.remove('selected');
+        } else {
+          selectedSynonyms.add(synonym);
+          tag.classList.add('selected');
+        }
+        updateSelectedCount();
+      });
+      
+      return tag;
     }
 
     window.onmessage = (event) => {
       const msg = event.data.pluginMessage;
       
+      // Debug: Log the message received from the plugin
+      console.log('Message received from plugin:', msg);
+      
       if (msg.type === 'update-description') {
         document.getElementById('name').textContent = msg.name || 'Select a component';
         document.getElementById('type').textContent = msg.nodeType;
-        document.getElementById('description').textContent = msg.description;
         
-        // Update input field with current description
-        descriptionInput.value = msg.description;
+        // Update description display based on hasDescription flag
+        const descriptionElement = document.getElementById('description');
+        if (msg.hasDescription) {
+          descriptionElement.textContent = msg.description;
+        } else {
+          if (msg.nodeType === 'COMPONENT' || msg.nodeType === 'COMPONENT_SET' || msg.nodeType === 'INSTANCE') {
+            descriptionElement.textContent = 'No description';
+            descriptionElement.style.fontStyle = 'italic';
+            descriptionElement.style.color = '#999';
+          } else {
+            descriptionElement.textContent = msg.description;
+            descriptionElement.style.fontStyle = 'normal';
+            descriptionElement.style.color = '#666';
+          }
+        }
+        
+        // Store the current description
+        currentDescription = msg.description || '';
         
         // Update button state
         currentNodeType = msg.nodeType;
         updateButtonState();
+        
+        // Hide synonyms section when selection changes
+        synonymsSection.style.display = 'none';
+        errorSection.style.display = 'none';
+        
+        // Clear selected synonyms
+        selectedSynonyms.clear();
+        updateSelectedCount();
+      } else if (msg.type === 'synonyms-result') {
+        // Hide loading indicator
+        loadingSection.style.display = 'none';
+        
+        if (msg.error) {
+          // Show error message
+          errorSection.textContent = msg.error;
+          errorSection.style.display = 'block';
+          synonymsSection.style.display = 'none';
+        } else if (msg.synonyms && msg.synonyms.length > 0) {
+          // Store the generated synonyms
+          generatedSynonyms = msg.synonyms;
+          
+          // Clear previous synonyms and selected synonyms
+          objectsList.innerHTML = '';
+          meaningsList.innerHTML = '';
+          shapesList.innerHTML = '';
+          othersList.innerHTML = '';
+          selectedSynonyms.clear();
+          updateSelectedCount();
+          
+          // Categorize and add each synonym as a tag
+          msg.synonyms.forEach(synonym => {
+            const tag = createSynonymTag(synonym);
+            
+            // Add to appropriate list based on category
+            const category = categorize(synonym);
+            switch(category) {
+              case 'object':
+                objectsList.appendChild(tag);
+                break;
+              case 'meaning':
+                meaningsList.appendChild(tag);
+                break;
+              case 'shape':
+                shapesList.appendChild(tag);
+                break;
+              default:
+                othersList.appendChild(tag);
+                break;
+            }
+          });
+          
+          // Show the synonyms section
+          synonymsSection.style.display = 'block';
+          errorSection.style.display = 'none';
+          
+          // Hide empty groups
+          if (objectsList.children.length === 0) {
+            objectsList.parentElement.style.display = 'none';
+          } else {
+            objectsList.parentElement.style.display = 'block';
+          }
+          
+          if (meaningsList.children.length === 0) {
+            meaningsList.parentElement.style.display = 'none';
+          } else {
+            meaningsList.parentElement.style.display = 'block';
+          }
+          
+          if (shapesList.children.length === 0) {
+            shapesList.parentElement.style.display = 'none';
+          } else {
+            shapesList.parentElement.style.display = 'block';
+          }
+          
+          if (othersList.children.length === 0) {
+            othersList.parentElement.style.display = 'none';
+          } else {
+            othersList.parentElement.style.display = 'block';
+          }
+        } else {
+          // No synonyms generated
+          errorSection.textContent = 'No synonyms were generated. Try again with a different icon.';
+          errorSection.style.display = 'block';
+          synonymsSection.style.display = 'none';
+        }
+      } else if (msg.type === 'description-updated') {
+        // Update the displayed description
+        const descriptionElement = document.getElementById('description');
+        
+        if (msg.hasDescription) {
+          descriptionElement.textContent = msg.description;
+          descriptionElement.style.fontStyle = 'normal';
+          descriptionElement.style.color = '#666';
+        } else {
+          descriptionElement.textContent = 'No description';
+          descriptionElement.style.fontStyle = 'italic';
+          descriptionElement.style.color = '#999';
+        }
+        
+        // Store the current description
+        currentDescription = msg.description || '';
+        
+        // Show success message
+        const successMessage = document.createElement('div');
+        successMessage.textContent = 'Description updated successfully!';
+        successMessage.style.color = '#4CAF50';
+        successMessage.style.marginTop = '8px';
+        successMessage.style.fontSize = '14px';
+        
+        // Add success message to the UI
+        const actionsContainer = document.querySelector('.actions-container');
+        actionsContainer.appendChild(successMessage);
+        
+        // Remove the message after 3 seconds
+        setTimeout(() => {
+          successMessage.remove();
+        }, 3000);
       }
     };
-
-    // Handle apply button click
-    applyButton.onclick = () => {
-      const newDescription = descriptionInput.value;
-      parent.postMessage({ 
-        pluginMessage: { 
-          type: 'update-component-description',
-          description: newDescription 
+    
+    // Handle generate button click
+    generateButton.onclick = () => {
+      // Get API key from localStorage if available
+      let apiKey = '';
+      try {
+        if (localStorage && localStorage.getItem('openai_api_key')) {
+          apiKey = localStorage.getItem('openai_api_key');
+        }
+      } catch (e) {
+        console.warn('localStorage is not available:', e);
+      }
+      
+      // Show loading indicator
+      loadingSection.style.display = 'flex';
+      errorSection.style.display = 'none';
+      synonymsSection.style.display = 'none';
+      
+      // Send message to plugin
+      parent.postMessage({
+        pluginMessage: {
+          type: 'generate-synonyms',
+          apiKey
         }
       }, '*');
+    };
+    
+    // Handle select all button click
+    selectAllButton.onclick = () => {
+      if (generatedSynonyms.length === 0) {
+        return;
+      }
+      
+      // Check if all synonyms are already selected
+      const allSelected = selectedSynonyms.size === generatedSynonyms.length;
+      
+      // Select or deselect all synonyms
+      if (allSelected) {
+        // Deselect all
+        selectedSynonyms.clear();
+        document.querySelectorAll('.synonym-tag').forEach(tag => {
+          tag.classList.remove('selected');
+        });
+        selectAllButton.textContent = 'Select All';
+      } else {
+        // Select all
+        generatedSynonyms.forEach(synonym => {
+          selectedSynonyms.add(synonym);
+        });
+        document.querySelectorAll('.synonym-tag').forEach(tag => {
+          tag.classList.add('selected');
+        });
+        selectAllButton.textContent = 'Deselect All';
+      }
+      
+      updateSelectedCount();
+    };
+    
+    // Handle apply button click
+    applyButton.onclick = () => {
+      if (selectedSynonyms.size === 0) {
+        alert('Please select at least one synonym to apply');
+        return;
+      }
+      
+      // Format the selected synonyms
+      const synonymsString = Array.from(selectedSynonyms).join(', ');
+      
+      // Create the new description with the format "Synonyms: x, y, z, etc"
+      let newDescription = currentDescription;
+      
+      // Check if the description already has a Synonyms section
+      const synonymsRegex = /Synonyms:\s*([^]*?)(?=\n\n|$)/;
+      const match = currentDescription.match(synonymsRegex);
+      
+      if (match) {
+        // Replace existing synonyms section
+        newDescription = currentDescription.replace(
+          synonymsRegex,
+          `Synonyms: ${synonymsString}`
+        );
+      } else {
+        // Add new synonyms section
+        if (currentDescription && !currentDescription.endsWith('\n\n')) {
+          // Add double newline if needed
+          if (currentDescription.endsWith('\n')) {
+            newDescription += '\n';
+          } else {
+            newDescription += '\n\n';
+          }
+        }
+        newDescription += `Synonyms: ${synonymsString}`;
+      }
+      
+      // Send message to update the description
+      parent.postMessage({
+        pluginMessage: {
+          type: 'update-description',
+          description: newDescription
+        }
+      }, '*');
+    };
+    
+    // Handle copy button click
+    copyButton.onclick = () => {
+      if (generatedSynonyms.length === 0) {
+        return;
+      }
+      
+      // Copy synonyms to clipboard
+      const synonymsText = generatedSynonyms.join(', ');
+      navigator.clipboard.writeText(synonymsText)
+        .then(() => {
+          copyButton.textContent = 'Copied!';
+          setTimeout(() => {
+            copyButton.textContent = 'Copy All to Clipboard';
+          }, 2000);
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+        });
     };
   </script>
 </body>
