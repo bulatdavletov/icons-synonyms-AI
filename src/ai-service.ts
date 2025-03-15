@@ -28,13 +28,13 @@ export async function generateSynonyms(iconData: IconData, apiKey: string = ""):
       This is an icon named "${iconData.name}". 
       ${iconData.existingDescription ? `It currently has this description: "${iconData.existingDescription}"` : ''}
       Please generate relevant synonyms or related terms that would help users find this icon when searching.
-      Focus on the visual appearance and common use cases for this icon.
+      Context: these icons are used in JetBrains IDEs.
+      If name contain several words, use them as separate entities: moveToRightTop = move to right top. It increases the chance to find the icon.
       Describe the object from the image: trash bin, folder, heart, etc.
       Describe usual meaning of the object: delete, save, like, etc.
       Describe shapes that you see: circle, square, rectangle, arrow, etc.
       Don't use words like "icon", "symbol", "image", etc.
       Don't repeat the name of icon or existing description.
-      Context: these icons are used in JetBrains IDEs.
       Return only a JSON array of strings with no additional text.
     `;
     

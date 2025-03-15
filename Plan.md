@@ -130,6 +130,7 @@ icons-synonyms-AI/
 9. ✅ Move API key to separate gitignored file
 10. ✅ Create detailed batch processing plan
 11. [ ] Implement batch processing UI and functionality
+12. Fix: Incorrect API key provided: sk-proj-********************************************************************************************************************************************************8c0A. You can find your API key at https://platform.openai.com/account/api-keys.
 
 ## Technical Requirements
 - Use native HTML/CSS/JS for consistent Figma-like interface
