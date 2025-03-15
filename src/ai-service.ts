@@ -1,4 +1,6 @@
 // AI Service for handling OpenAI integration
+import { OPENAI_API_KEY } from './api-keys';
+
 interface OpenAIResponse {
   synonyms: string[];
   error?: string;
@@ -10,9 +12,8 @@ interface IconData {
   existingDescription?: string;
 }
 
-// Hardcoded API key for testing purposes only
-// In production, this should be provided by the user or stored securely
-const HARDCODED_API_KEY = "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";
+// Use imported API key from separate file that's gitignored
+const HARDCODED_API_KEY = OPENAI_API_KEY;
 
 export async function generateSynonyms(iconData: IconData, apiKey: string = ""): Promise<OpenAIResponse> {
   try {
