@@ -1,40 +1,73 @@
-Below are the steps to get your plugin running. You can also find instructions at:
+# Icon Synonyms AI Plugin
 
-  https://www.figma.com/plugin-docs/plugin-quickstart-guide/
+A Figma plugin that uses AI to generate relevant synonyms for icon components and automatically adds them to component descriptions, improving searchability and usability of icon libraries.
 
-This plugin template uses Typescript and NPM, two standard tools in creating JavaScript applications.
+## Features
+- Generate contextually relevant synonyms for icons using AI
+- Enhance component searchability 
+- Improve icon library usability
+- Support for both single components and batch processing
+- Light/Dark theme support
 
-First, download Node.js which comes with NPM. This will allow you to install TypeScript and other
-libraries. You can find the download link here:
+## Development Setup
 
-  https://nodejs.org/en/download/
+1. Install Node.js from https://nodejs.org/en/download/
+2. Clone this repository
+3. Install dependencies:
+```bash
+npm install
+npm install --save-dev @figma/plugin-typings
+npm install @create-figma-plugin/ui preact # New UI framework
+```
 
-Next, install TypeScript using the command:
+## Project Structure
+```
+icons-synonyms-AI/
+├── code.ts              # Main plugin logic
+├── code.js             # Bundled JavaScript (from esbuild)
+├── ui.html             # Plugin interface
+├── manifest.json       # Plugin configuration
+├── src/
+│   ├── ai-service.ts   # AI API integration
+│   ├── api-keys.ts     # API keys (gitignored)
+│   ├── icon-exporter.ts # Icon export functionality
+│   └── components/     # UI components
+├── esbuild.config.js   # esbuild configuration
+└── tsconfig.json       # TypeScript configuration
+```
 
-  npm install -g typescript
+## Development Workflow
 
-Finally, in the directory of your plugin, get the latest type definitions for the plugin API by running:
+1. Open the directory in Visual Studio Code
+2. Start the TypeScript compiler in watch mode:
+```bash
+npm run watch
+```
+3. Make your changes
+4. Test in Figma by loading the plugin
 
-  npm install --save-dev @figma/plugin-typings
+## Build Process
+- TypeScript files are bundled using esbuild
+- Main entry point: `code.ts` → `code.js`
+- UI is defined in `ui.html`
+- Build command: `npm run build`
+- Watch mode: `npm run watch`
 
-If you are familiar with JavaScript, TypeScript will look very familiar. In fact, valid JavaScript code
-is already valid Typescript code.
+## Current Status
+- ✅ Component selection detection
+- ✅ AI integration with OpenAI GPT-4o
+- ✅ Basic UI functionality with grouped synonyms
+- ✅ Synonym selection and application
+- ✅ Empty description handling
+- ✅ API key security
+- 🚧 Batch processing implementation
 
-TypeScript adds type annotations to variables. This allows code editors such as Visual Studio Code
-to provide information about the Figma API while you are writing code, as well as help catch bugs
-you previously didn't notice.
+## Contributing
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
 
-For more information, visit https://www.typescriptlang.org/
-
-Using TypeScript requires a compiler to convert TypeScript (code.ts) into JavaScript (code.js)
-for the browser to run.
-
-We recommend writing TypeScript code using Visual Studio code:
-
-1. Download Visual Studio Code if you haven't already: https://code.visualstudio.com/.
-2. Open this directory in Visual Studio Code.
-3. Compile TypeScript to JavaScript: Run the "Terminal > Run Build Task..." menu item,
-    then select "npm: watch". You will have to do this again every time
-    you reopen Visual Studio Code.
-
-That's it! Visual Studio Code will regenerate the JavaScript file every time you save.
+## License
+This project is licensed under the MIT License.

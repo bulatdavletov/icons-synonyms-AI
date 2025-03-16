@@ -1,18 +1,1 @@
-{
-  "name": "icons-synonyms-AI",
-  "id": "1481361200325156818",
-  "api": "1.0.0",
-  "main": "code.js",
-  "capabilities": [],
-  "enableProposedApi": false,
-  "documentAccess": "dynamic-page",
-  "editorType": [
-    "figma"
-  ],
-  "ui": "ui.html",
-  "networkAccess": {
-    "allowedDomains": [
-      "https://api.openai.com"
-    ]
-  }
-}
+{"api":"1.0.0","editorType":["figma"],"id":"1481361200325156818","name":"icons-synonyms-AI","main":"build/main.js","ui":"build/ui.js"}

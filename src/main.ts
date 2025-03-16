@@ -1,7 +1,7 @@
 import { emit, on, showUI } from '@create-figma-plugin/utilities'
-import { exportNodeAsBase64, getBestNodeToExport } from './src/icon-exporter'
-import { generateSynonyms } from './src/ai-service'
-import { Handler } from './src/types'
+import { exportNodeAsBase64, getBestNodeToExport } from './icon-exporter'
+import { generateSynonyms } from './ai-service'
+import { Handler } from './types'
 
 export default function () {
   showUI({
@@ -129,4 +129,4 @@ export default function () {
 
   // Initial selection check
   sendSelectionToUI()
-}
+} 

@@ -1,7 +1,12 @@
 # Icon Synonyms AI Plugin - Development Plan
 
 ## Project Overview
-A Figma plugin that uses AI to generate relevant synonyms for icon components and automatically adds them to component descriptions, improving searchability and usability of icon libraries. The plugin uses Figma's native UI components and allows users to preview and edit suggestions before applying them.
+A Figma plugin that uses AI to generate relevant synonyms for icon components and automatically adds them to component descriptions, improving searchability and usability of icon libraries.
+
+The plugin leverages AI technology to:
+- Generate contextually relevant synonyms for icons
+- Enhance component searchability 
+- Improve icon library usability
 
 ## Core Features
 1. Description Management
@@ -212,3 +217,179 @@ icons-synonyms-AI/
 - Detailed batch processing plan created
 - Prompt is organized in a separate file for better maintainability
 - Next focus areas: implementing batch processing UI and functionality
+
+# UI Implementation Plan with @create-figma-plugin/ui
+
+## Migration Steps
+
+### 1. Setup (Day 1)
+- [ ] Install required dependencies:
+  ```bash
+  npm install @create-figma-plugin/ui preact
+  ```
+- [ ] Update package.json with UI configuration:
+  ```json
+  {
+    "figma-plugin": {
+      "name": "Icon Synonyms AI",
+      "id": "1481361200325156818",
+      "main": "src/main.ts",
+      "ui": "src/ui.tsx"
+    }
+  }
+  ```
+- [ ] Update tsconfig.json to support JSX:
+  ```json
+  {
+    "compilerOptions": {
+      "jsx": "react",
+      "jsxFactory": "h"
+    }
+  }
+  ```
+
+### 2. File Structure Update (Day 1)
+- [ ] Create new UI entry point: src/ui.tsx
+- [ ] Move existing UI logic from ui.html to React components
+- [ ] Create component directory structure:
+  ```
+  src/
+  ├── components/
+  │   ├── App.tsx              # Main UI container
+  │   ├── SynonymGroup.tsx     # Group component for synonyms
+  │   ├── SynonymTag.tsx       # Individual synonym tag
+  │   ├── ComponentInfo.tsx    # Component information display
+  │   └── ActionButtons.tsx    # Generate/Apply buttons
+  ```
+
+### 3. Component Implementation (Days 2-3)
+- [ ] Implement base components using @create-figma-plugin/ui:
+  - [ ] Container and layout components
+  - [ ] Button components for actions
+  - [ ] Text components for descriptions
+  - [ ] Loading indicators
+- [ ] Implement custom components:
+  - [ ] SynonymGroup with selection functionality
+  - [ ] ComponentInfo with description display
+  - [ ] ActionButtons with proper event handling
+
+### 4. State Management (Day 4)
+- [ ] Set up message passing between UI and plugin:
+  ```typescript
+  // In main.ts
+  figma.showUI(__html__, { width: 400, height: 500 });
+  
+  // In ui.tsx
+  import { emit } from '@create-figma-plugin/utilities';
+  emit('GENERATE_SYNONYMS', data);
+  ```
+- [ ] Implement state management for:
+  - [ ] Selected component info
+  - [ ] Generated synonyms
+  - [ ] Selection state
+  - [ ] Loading states
+
+### 5. Theme Support (Day 4)
+- [ ] Implement automatic theme detection
+- [ ] Test UI in both light and dark modes
+- [ ] Ensure consistent styling across themes
+
+### 6. Testing & Refinement (Day 5)
+- [ ] Test all UI interactions
+- [ ] Verify theme switching
+- [ ] Test performance with large synonym sets
+- [ ] Polish animations and transitions
+- [ ] Add error handling UI
+
+## Component Specifications
+
+### App.tsx
+```typescript
+import { render, Container } from '@create-figma-plugin/ui'
+import { h } from 'preact'
+
+function Plugin() {
+  return (
+    <Container space="medium">
+      <ComponentInfo />
+      <SynonymGroups />
+      <ActionButtons />
+    </Container>
+  )
+}
+
+export default render(Plugin)
+```
+
+### SynonymGroup.tsx
+```typescript
+interface Props {
+  title: string
+  synonyms: string[]
+  onSelect: (synonym: string) => void
+}
+```
+
+### ComponentInfo.tsx
+```typescript
+interface Props {
+  name: string
+  type: string
+  description: string
+  hasDescription: boolean
+}
+```
+
+## Message Types
+```typescript
+type Message = 
+  | { type: 'GENERATE_SYNONYMS' }
+  | { type: 'UPDATE_DESCRIPTION', description: string }
+  | { type: 'SELECTION_CHANGE', selection: ComponentInfo }
+```
+
+## Next Steps
+1. [ ] Set up development environment with new dependencies
+2. [ ] Create basic component structure
+3. [ ] Migrate existing UI logic to new components
+4. [ ] Implement theme support
+5. [ ] Test and refine
+
+## Notes
+- Keep existing functionality while migrating
+- Maintain current synonym grouping (Objects, Meanings, Shapes, Other)
+- Ensure smooth transitions between states
+- Follow Figma's UI patterns and guidelines
+
+## Completed Tasks
+1. Set up project structure with necessary files
+2. Implemented base UI components using @create-figma-plugin/ui
+3. Added state management using Preact hooks
+4. Created message handling between UI and plugin code
+5. Set up CSS styling with Figma's theme variables
+6. Fixed build configuration:
+   - Configured build-figma-plugin correctly
+   - Set up proper TypeScript configuration
+   - Fixed manifest.json and package.json alignment
+   - Successfully built and loaded the plugin in Figma
+
+## Next Steps
+1. Add missing functionality from old UI:
+   - Loading states
+   - Error handling
+   - Synonym grouping by category
+2. Polish UI and interactions:
+   - Add animations
+   - Improve error messages
+   - Add loading indicators
+3. Add documentation:
+   - Update README
+   - Add comments to code
+   - Document event handling pattern
+
+## Future Improvements
+1. Add unit tests
+2. Implement caching for generated synonyms
+3. Add support for batch processing multiple icons
+4. Improve AI service with more context
+5. Add user preferences for synonym categories
