@@ -7,5 +7,7 @@ out/
 dist/
 code.js
 
-# API Keys
+# API Keys and Config
 src/api-keys.ts
+src/config.ts
+.env

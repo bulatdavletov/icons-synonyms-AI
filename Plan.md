@@ -190,33 +190,40 @@ icons-synonyms-AI/
 - API keys should be kept in gitignored files and not committed to the repository
 
 ## Recent fixes
-- Updated the AI model from deprecated `gpt-4-vision-preview` to current `gpt-4o`
-- Added console logging to display the final message sent to OpenAI API and the response received
-- Fixed localStorage access issues with try-catch blocks
-- Improved selection handling with centralized `sendSelectionToUI()` function
-- Added UI ready message to ensure proper initialization
-- Simplified UI to focus only on Generate Synonyms functionality
-- Organized generated synonyms into meaningful groups (Objects, Meanings, Shapes, Other)
-- Added ability to select specific synonyms and apply them to component descriptions
-- Implemented "Synonyms: x, y, z" format for adding synonyms to descriptions
-- Improved handling of empty descriptions with better visual indicators
-- Removed API key input field and related UI elements for a cleaner interface
-- Moved API key to separate gitignored file for better security
-- Created API key template file for easier setup
-- Moved prompt to separate file for better organization
+- Improved AI response parsing to better handle line breaks and category detection
+- Enhanced UI to display all synonym categories (Usage, Object, Modificator, Shapes)
+- Fixed category name consistency across the codebase
+- Added proper selection state handling for synonyms with category prefixes
+- Updated synonym application to include category information
+- Fixed component imports and type definitions in the UI code
+- Improved error handling and loading states in the UI
+- Added comprehensive debug logging for AI response parsing
 
 ## Current status
 - Plugin can detect component selections correctly
 - AI integration is working with the latest OpenAI model
 - Debug logging is in place to help troubleshoot API interactions
-- Basic UI functionality is implemented with grouped synonyms for better organization
-- Users can now select specific synonyms and apply them to component descriptions
+- Basic UI functionality is implemented with structured categories:
+  - Usage group (required) for action/feature terms
+  - Object group (required) for main visual elements
+  - Modificator group for corner icons/states
+  - Shapes group for simple geometric elements
+- Users can select multiple terms with visual feedback
+- Selected terms can be applied in batch with the Apply Selected button
+- Component descriptions preserve existing content when adding terms
+- Description format follows Answer Structure exactly:
+  - Usage: action/feature terms
+  - Object: main visual elements
+  - Modificator: corner icons/states
+  - Shapes: simple geometric elements
 - Empty descriptions are handled gracefully with visual indicators
 - UI is streamlined with only essential elements for better user experience
-- API key is securely stored in a separate gitignored file
+- API key is securely stored in a gitignored config file
+- Event handling is consistent and type-safe throughout the codebase
 - Detailed batch processing plan created
 - Prompt is organized in a separate file for better maintainability
-- Next focus areas: implementing batch processing UI and functionality
+- AI responses are properly parsed from text format
+- Category grouping follows exact Answer Structure format
 
 # UI Implementation Plan with @create-figma-plugin/ui
 

@@ -1,5 +1,5 @@
 // AI Service for handling OpenAI integration
-import { OPENAI_API_KEY } from './api-keys';
+import { config } from './config';
 import { getIconSynonymsPrompt } from './prompt-templates';
 
 interface OpenAIResponse {
@@ -7,103 +7,110 @@ interface OpenAIResponse {
   error?: string;
 }
 
-interface IconData {
+interface GenerateSynonymsParams {
   name: string;
   imageBase64: string;
   existingDescription?: string;
 }
 
-// Use imported API key from separate file that's gitignored
-const HARDCODED_API_KEY = OPENAI_API_KEY;
+/**
+ * Parse the AI response text into structured format
+ * @param text Raw text from AI response
+ * @returns Array of formatted category lines
+ */
+function parseAIResponse(text: string): string[] {
+  // Split the text into lines and clean them
+  const lines = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
 
-export async function generateSynonyms(iconData: IconData, apiKey: string = ""): Promise<OpenAIResponse> {
+  // Initialize result array
+  const result: string[] = [];
+
+  // Process each line
+  for (const line of lines) {
+    // Check for each category
+    if (line.toLowerCase().startsWith('usage:')) {
+      result.push(line);
+    }
+    else if (line.toLowerCase().startsWith('object:')) {
+      result.push(line);
+    }
+    else if (line.toLowerCase().startsWith('modificator:')) {
+      result.push(line);
+    }
+    else if (line.toLowerCase().startsWith('shapes:')) {
+      result.push(line);
+    }
+    // Handle cases where the category name might be on a separate line
+    else if (line === 'Usage' || line === 'Object' || line === 'Modificator' || line === 'Shapes') {
+      continue; // Skip category headers without values
+    }
+    // If line contains a colon, it might be a category
+    else if (line.includes(':')) {
+      const [category, ...rest] = line.split(':');
+      const trimmedCategory = category.trim();
+      if (['usage', 'object', 'modificator', 'shapes'].includes(trimmedCategory.toLowerCase())) {
+        result.push(`${trimmedCategory}: ${rest.join(':').trim()}`);
+      }
+    }
+  }
+
+  console.log('Parsed response lines:', result);
+  return result;
+}
+
+export async function generateSynonyms(params: GenerateSynonymsParams): Promise<OpenAIResponse> {
   try {
-    // Use the provided API key or fall back to the hardcoded one
-    const effectiveApiKey = apiKey.trim() || HARDCODED_API_KEY;
+    const prompt = getIconSynonymsPrompt(params.name, params.existingDescription);
     
-    // OpenAI API endpoint for GPT-4 Vision
-    const endpoint = 'https://api.openai.com/v1/chat/completions';
-    
-    // Get the prompt for icon synonyms
-    const prompt = getIconSynonymsPrompt(iconData.name, iconData.existingDescription);
-    
-    // Prepare the request payload
-    const payload = {
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/png;base64,${iconData.imageBase64}`
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 300
-    };
-    
-    // Log the final message being sent to OpenAI (excluding the image data for brevity)
-    console.log("Sending to OpenAI:", {
-      model: payload.model,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: "[BASE64_IMAGE_DATA]" } }
-          ]
-        }
-      ],
-      max_tokens: payload.max_tokens
-    });
-    
-    // Make the API request
-    const response = await fetch(endpoint, {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${effectiveApiKey}`
+        'Authorization': `Bearer ${config.OPENAI_API_KEY}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/png;base64,${params.imageBase64}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 300
+      })
     });
-    
-    // Parse the response
-    const data = await response.json();
-    
+
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Unknown error from OpenAI API');
+      throw new Error(`OpenAI API error: ${response.statusText}`);
     }
+
+    const data = await response.json();
+    console.log('Response from OpenAI:', data.choices[0].message.content);
+
+    // Parse the response text into structured format
+    const parsedSynonyms = parseAIResponse(data.choices[0].message.content);
     
-    // Extract the synonyms from the response
-    const content = data.choices[0].message.content;
-    
-    // Log the response from OpenAI
-    console.log("Response from OpenAI:", content);
-    
-    // Parse the JSON array from the response
-    try {
-      const synonyms = JSON.parse(content);
-      return { synonyms };
-    } catch (parseError) {
-      // If parsing fails, try to extract an array from the text
-      // Using a regular expression without the 's' flag for compatibility
-      const matches = content.match(/\[([\s\S]*)\]/);
-      if (matches && matches[1]) {
-        try {
-          const synonyms = JSON.parse(`[${matches[1]}]`);
-          return { synonyms };
-        } catch (e) {
-          throw new Error('Failed to parse synonyms from response');
-        }
-      } else {
-        throw new Error('Response format not recognized');
-      }
+    if (!parsedSynonyms || parsedSynonyms.length === 0) {
+      throw new Error('No valid synonyms generated');
     }
+
+    return {
+      synonyms: parsedSynonyms
+    };
   } catch (error: any) {
     console.error('Error generating synonyms:', error);
     return {

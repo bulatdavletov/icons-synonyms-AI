@@ -1,134 +1,124 @@
 import { h, Fragment } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { 
-  Button,
-  Container,
-  Text,
-  VerticalSpace,
-  LoadingIndicator,
-  Divider
-} from '@create-figma-plugin/ui'
-import { ComponentInfo, SynonymGroup } from '../types'
+import { ComponentInfo } from './ComponentInfo'
+import { Button, Container, Text, VerticalSpace } from '@create-figma-plugin/ui'
+import type { ComponentInfo as ComponentInfoType } from '../types'
+import type { SynonymGroup } from '../types'
 
 export function App() {
-  const [componentInfo, setComponentInfo] = useState<ComponentInfo | null>(null)
+  const [componentInfo, setComponentInfo] = useState<ComponentInfoType | null>(null)
   const [synonymGroups, setSynonymGroups] = useState<SynonymGroup[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedSynonyms, setSelectedSynonyms] = useState<string[]>([])
 
   useEffect(() => {
     // Listen for selection changes
-    const removeSelectionChangeListener = on('SELECTION_CHANGE', (componentInfo: ComponentInfo) => {
-      setComponentInfo(componentInfo)
-      setSynonymGroups([])
+    on('selection-change', (data: ComponentInfoType) => {
+      setComponentInfo(data)
       setError(null)
     })
 
-    // Listen for synonym generation results
-    const removeSynonymsGeneratedListener = on('SYNONYMS_GENERATED', (data: { groups: SynonymGroup[] }) => {
-      setLoading(false)
+    // Listen for generated synonyms
+    on('synonyms-generated', (data: { groups: SynonymGroup[] }) => {
+      console.log('Received synonym groups:', data.groups)
       setSynonymGroups(data.groups)
+      setLoading(false)
       setError(null)
     })
 
     // Listen for errors
-    const removeErrorListener = on('GENERATE_ERROR', (data: { error: string }) => {
-      setLoading(false)
+    on('generate-error', (data: { error: string }) => {
       setError(data.error)
+      setLoading(false)
     })
-
-    return () => {
-      removeSelectionChangeListener()
-      removeSynonymsGeneratedListener()
-      removeErrorListener()
-    }
   }, [])
 
   const handleGenerateSynonyms = () => {
     setLoading(true)
     setError(null)
-    emit('GENERATE_SYNONYMS')
+    setSynonymGroups([])
+    emit('generate-synonyms')
   }
 
-  const handleSynonymClick = (synonyms: string[]) => {
-    emit('UPDATE_DESCRIPTION', { synonyms })
+  const handleSynonymClick = (synonym: string) => {
+    setSelectedSynonyms(prev => 
+      prev.includes(synonym)
+        ? prev.filter(s => s !== synonym)
+        : [...prev, synonym]
+    )
+  }
+
+  const handleApplySelected = () => {
+    if (selectedSynonyms.length > 0) {
+      emit('update-description', { synonyms: selectedSynonyms })
+      setSelectedSynonyms([])
+    }
   }
 
   return (
     <Container space="medium">
-      {componentInfo ? (
-        <Fragment>
-          <VerticalSpace space="large" />
-          <Text>{componentInfo.name}</Text>
-          <VerticalSpace space="small" />
-          <Text>{componentInfo.type}</Text>
-          
-          {componentInfo.description && (
-            <Fragment>
-              <VerticalSpace space="medium" />
-              <Text>Current description:</Text>
-              <Text>{componentInfo.description}</Text>
-            </Fragment>
-          )}
+      <VerticalSpace space="large" />
+      {componentInfo && (
+        <ComponentInfo
+          name={componentInfo.name}
+          type={componentInfo.type}
+          description={componentInfo.description}
+          hasDescription={componentInfo.hasDescription}
+        />
+      )}
 
+      <VerticalSpace space="large" />
+
+      <Button fullWidth onClick={handleGenerateSynonyms} disabled={loading || !componentInfo}>
+        {loading ? 'Generating...' : 'Generate Synonyms'}
+      </Button>
+
+      {error && (
+        <Fragment>
           <VerticalSpace space="medium" />
-          <Button 
-            fullWidth
-            onClick={handleGenerateSynonyms}
-            disabled={loading}
-          >
-            {loading ? 'Generating...' : 'Generate Synonyms'}
-          </Button>
-          
-          {loading && (
-            <Fragment>
-              <VerticalSpace space="medium" />
-              <LoadingIndicator />
-            </Fragment>
-          )}
-          
-          {error && (
-            <Fragment>
-              <VerticalSpace space="medium" />
-              <Text style={{ color: 'var(--figma-color-text-danger)' }}>
-                {error}
-              </Text>
-            </Fragment>
-          )}
-
-          {synonymGroups.length > 0 && (
-            <Fragment>
-              <VerticalSpace space="large" />
-              <Divider />
-              <VerticalSpace space="medium" />
-              {synonymGroups.map((group) => (
-                <div key={group.title}>
-                  <Text>{group.title}</Text>
-                  <VerticalSpace space="small" />
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {group.synonyms.map((synonym) => (
-                      <Button
-                        key={synonym}
-                        onClick={() => handleSynonymClick([synonym])}
-                        secondary
-                      >
-                        {synonym.replace(/^(object:|action:|visual:)/, '')}
-                      </Button>
-                    ))}
-                  </div>
-                  <VerticalSpace space="medium" />
-                </div>
-              ))}
-            </Fragment>
-          )}
-          <VerticalSpace space="large" />
+          <Text style={{ color: 'var(--figma-color-text-danger)' }}>{error}</Text>
         </Fragment>
-      ) : (
+      )}
+
+      {synonymGroups.length > 0 && (
         <Fragment>
           <VerticalSpace space="large" />
-          <Text align="center">Select a component to get started</Text>
-          <VerticalSpace space="large" />
+          {synonymGroups.map((group, index) => (
+            <div key={index}>
+              <Text>{group.title}</Text>
+              <VerticalSpace space="small" />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {group.synonyms.map((synonym, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: selectedSynonyms.includes(`${group.title.toLowerCase()}: ${synonym}`)
+                        ? 'var(--figma-color-bg-selected)'
+                        : 'var(--figma-color-bg-secondary)',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => handleSynonymClick(`${group.title.toLowerCase()}: ${synonym}`)}
+                  >
+                    <Text>{synonym}</Text>
+                  </div>
+                ))}
+              </div>
+              <VerticalSpace space="medium" />
+            </div>
+          ))}
+
+          {selectedSynonyms.length > 0 && (
+            <Fragment>
+              <VerticalSpace space="medium" />
+              <Button fullWidth onClick={handleApplySelected}>
+                Apply Selected ({selectedSynonyms.length})
+              </Button>
+            </Fragment>
+          )}
         </Fragment>
       )}
     </Container>

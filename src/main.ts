@@ -31,7 +31,7 @@ export default function () {
           ? node.mainComponent?.description || ""
           : node.description || ""
         
-        emit('SELECTION_CHANGE', {
+        emit('selection-change', {
           name: node.name,
           type: node.type,
           description,
@@ -42,7 +42,7 @@ export default function () {
   }
 
   // Handle messages from the UI
-  on('GENERATE_SYNONYMS', async () => {
+  on('generate-synonyms', async () => {
     try {
       // Show loading state
       figma.notify("Generating synonyms...")
@@ -54,7 +54,7 @@ export default function () {
       const nodeToExport = getBestNodeToExport(selection)
       
       if (!nodeToExport) {
-        emit('GENERATE_ERROR', {
+        emit('generate-error', {
           error: 'No valid icon selected'
         })
         return
@@ -80,42 +80,88 @@ export default function () {
         existingDescription: description
       })
       
-      // Group synonyms by category
+      console.log('Raw synonyms from AI:', result.synonyms)
+      
+      // Group synonyms by category according to Answer Structure
       const groups = [
         {
-          title: 'Objects',
-          synonyms: result.synonyms.filter(s => s.startsWith('object:'))
+          title: 'Usage',
+          synonyms: result.synonyms
+            .filter(s => s.toLowerCase().startsWith('usage:'))
+            .map(s => s.replace(/^usage:\s*/i, '').trim())
         },
         {
-          title: 'Actions',
-          synonyms: result.synonyms.filter(s => s.startsWith('action:'))
+          title: 'Object',
+          synonyms: result.synonyms
+            .filter(s => s.toLowerCase().startsWith('object:'))
+            .map(s => s.replace(/^object:\s*/i, '').trim())
+            .flatMap(s => s.split(',').map(term => term.trim()))
+            .filter(s => s.length > 0)
         },
         {
-          title: 'Visual',
-          synonyms: result.synonyms.filter(s => s.startsWith('visual:'))
+          title: 'Modificator',
+          synonyms: result.synonyms
+            .filter(s => s.toLowerCase().startsWith('modificator:'))
+            .map(s => s.replace(/^modificator:\s*/i, '').trim())
+            .flatMap(s => s.split(',').map(term => term.trim()))
+            .filter(s => s.length > 0)
+        },
+        {
+          title: 'Shapes',
+          synonyms: result.synonyms
+            .filter(s => s.toLowerCase().startsWith('shapes:'))
+            .map(s => s.replace(/^shapes:\s*/i, '').trim())
+            .flatMap(s => s.split(',').map(term => term.trim()))
+            .filter(s => s.length > 0)
         }
-      ]
+      ].filter(group => group.synonyms.length > 0) // Only include groups with synonyms
       
-      emit('SYNONYMS_GENERATED', { groups })
+      console.log('Grouped synonyms:', groups)
+      
+      emit('synonyms-generated', { groups })
       
       figma.notify("Synonyms generated successfully!")
     } catch (error: any) {
       console.error('Error in generate-synonyms handler:', error)
-      emit('GENERATE_ERROR', {
+      emit('generate-error', {
         error: error.message || 'Unknown error occurred'
       })
       figma.notify("Error generating synonyms")
     }
   })
 
-  on('UPDATE_DESCRIPTION', (data: { synonyms: string[] }) => {
+  on('update-description', (data: { synonyms: string[] }) => {
     const selection = figma.currentPage.selection[0]
     if (selection && (selection.type === "COMPONENT" || selection.type === "COMPONENT_SET")) {
       try {
-        selection.description = data.synonyms.join(', ')
+        const existingDescription = selection.description || ''
+        
+        // Group synonyms by category
+        const usageTerms = data.synonyms.filter(s => s.toLowerCase().startsWith('usage:'))
+          .map(s => s.replace(/^usage:\s*/i, '').trim())
+        const objectTerms = data.synonyms.filter(s => s.toLowerCase().startsWith('object:'))
+          .map(s => s.replace(/^object:\s*/i, '').trim())
+        const modificatorTerms = data.synonyms.filter(s => s.toLowerCase().startsWith('modificator:'))
+          .map(s => s.replace(/^modificator:\s*/i, '').trim())
+        const shapeTerms = data.synonyms.filter(s => s.toLowerCase().startsWith('shapes:'))
+          .map(s => s.replace(/^shapes:\s*/i, '').trim())
+
+        // Build the new description lines
+        const newLines = []
+        if (usageTerms.length > 0) newLines.push(`Usage: ${usageTerms.join(', ')}`)
+        if (objectTerms.length > 0) newLines.push(`Object: ${objectTerms.join(', ')}`)
+        if (modificatorTerms.length > 0) newLines.push(`Modificator: ${modificatorTerms.join(', ')}`)
+        if (shapeTerms.length > 0) newLines.push(`Shapes: ${shapeTerms.join(', ')}`)
+        
+        // Combine existing description with new lines
+        const newDescription = existingDescription
+          ? `${existingDescription}\n${newLines.join('\n')}`
+          : newLines.join('\n')
+        
+        selection.description = newDescription
         figma.notify('Description updated successfully!')
       } catch (error: any) {
-        emit('GENERATE_ERROR', {
+        emit('generate-error', {
           error: 'Failed to update description: ' + error.message
         })
       }

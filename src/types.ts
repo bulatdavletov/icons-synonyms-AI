@@ -1,5 +1,14 @@
 import { EventHandler } from '@create-figma-plugin/utilities'
 
+/**
+ * Represents a group of synonyms in a specific category
+ * 
+ * Categories:
+ * - Usage: How the icon is used in the IDE (actions/features)
+ * - Name of object: Main object representation in the icon
+ * - Modificator: Additional states or modifiers (usually small icons)
+ * - Synonyms: Additional related terms and shapes
+ */
 export interface SynonymGroup {
   title: string
   synonyms: string[]
@@ -13,11 +22,11 @@ export interface ComponentInfo {
 }
 
 export interface Handler {
-  SELECTION_CHANGE: (componentInfo: ComponentInfo) => void
-  GENERATE_SYNONYMS: () => void
-  SYNONYMS_GENERATED: (data: { groups: SynonymGroup[] }) => void
-  GENERATE_ERROR: (data: { error: string }) => void
-  UPDATE_DESCRIPTION: (data: { synonyms: string[] }) => void
+  'selection-change': (componentInfo: ComponentInfo) => void
+  'generate-synonyms': () => void
+  'synonyms-generated': (data: { groups: SynonymGroup[] }) => void
+  'generate-error': (data: { error: string }) => void
+  'update-description': (data: { synonyms: string[] }) => void
 }
 
 export type HandlerEvent<K extends keyof Handler> = {
