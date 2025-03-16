@@ -40,6 +40,7 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
 - [x] Add hardcoded API key for testing
 - [x] Update to use current OpenAI models (gpt-4o)
 - [x] Move API key to separate gitignored file
+- [x] Move prompt to separate file
 - [ ] Test with sample icons
 
 ### Phase 3: Icon Export
@@ -74,6 +75,7 @@ icons-synonyms-AI/
 │   ├── ai-service.ts    # AI API integration
 │   ├── api-keys.ts      # API keys (gitignored)
 │   ├── api-keys.template.ts # Template for API keys
+│   ├── prompt-templates.ts  # Prompt template for AI
 │   ├── icon-exporter.ts # Icon export functionality
 │   ├── components/      # UI components
 │   │   ├── Preview.tsx
@@ -129,8 +131,8 @@ icons-synonyms-AI/
 8. ✅ Update to use current OpenAI models
 9. ✅ Move API key to separate gitignored file
 10. ✅ Create detailed batch processing plan
-11. [ ] Implement batch processing UI and functionality
-12. Fix: Incorrect API key provided: sk-proj-********************************************************************************************************************************************************8c0A. You can find your API key at https://platform.openai.com/account/api-keys.
+11. ✅ Move prompt to separate file
+12. [ ] Implement batch processing UI and functionality
 
 ## Technical Requirements
 - Use native HTML/CSS/JS for consistent Figma-like interface
@@ -150,7 +152,7 @@ icons-synonyms-AI/
 
 ### AI Integration
 - Using OpenAI GPT-4o API for icon analysis (updated from gpt-4-vision-preview)
-- Structured prompt template focusing on visual appearance and use cases
+- Structured prompt in separate file for better organization
 - JSON response format for easy parsing
 - Error handling for API failures
 - API key stored in separate gitignored file
@@ -196,6 +198,7 @@ icons-synonyms-AI/
 - Removed API key input field and related UI elements for a cleaner interface
 - Moved API key to separate gitignored file for better security
 - Created API key template file for easier setup
+- Moved prompt to separate file for better organization
 
 ## Current status
 - Plugin can detect component selections correctly
@@ -207,4 +210,5 @@ icons-synonyms-AI/
 - UI is streamlined with only essential elements for better user experience
 - API key is securely stored in a separate gitignored file
 - Detailed batch processing plan created
+- Prompt is organized in a separate file for better maintainability
 - Next focus areas: implementing batch processing UI and functionality

@@ -1,5 +1,6 @@
 // AI Service for handling OpenAI integration
 import { OPENAI_API_KEY } from './api-keys';
+import { getIconSynonymsPrompt } from './prompt-templates';
 
 interface OpenAIResponse {
   synonyms: string[];
@@ -23,20 +24,8 @@ export async function generateSynonyms(iconData: IconData, apiKey: string = ""):
     // OpenAI API endpoint for GPT-4 Vision
     const endpoint = 'https://api.openai.com/v1/chat/completions';
     
-    // Create the prompt with the icon information
-    const prompt = `
-      This is an icon named "${iconData.name}". 
-      ${iconData.existingDescription ? `It currently has this description: "${iconData.existingDescription}"` : ''}
-      Please generate relevant synonyms or related terms that would help users find this icon when searching.
-      Context: these icons are used in JetBrains IDEs.
-      If name contain several words, use them as separate entities: moveToRightTop = move to right top. It increases the chance to find the icon.
-      Describe the object from the image: trash bin, folder, heart, etc.
-      Describe usual meaning of the object: delete, save, like, etc.
-      Describe shapes that you see: circle, square, rectangle, arrow, etc.
-      Don't use words like "icon", "symbol", "image", etc.
-      Don't repeat the name of icon or existing description.
-      Return only a JSON array of strings with no additional text.
-    `;
+    // Get the prompt for icon synonyms
+    const prompt = getIconSynonymsPrompt(iconData.name, iconData.existingDescription);
     
     // Prepare the request payload
     const payload = {
