@@ -19,6 +19,11 @@ npm install
 npm install --save-dev @figma/plugin-typings
 npm install @create-figma-plugin/ui preact # New UI framework
 ```
+4. Set up API keys:
+   - Copy `src/config.template.ts` to `src/config.ts`
+   - Copy `src/api-keys.template.ts` to `src/api-keys.ts`
+   - Add your OpenAI API key to both files
+   - These files are gitignored to prevent API keys from being committed
 
 ## Project Structure
 ```
