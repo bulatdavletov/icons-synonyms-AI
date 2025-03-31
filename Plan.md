@@ -190,6 +190,7 @@ icons-synonyms-AI/
 - API keys should be kept in gitignored files and not committed to the repository
 
 ## Recent fixes
+- Fixed package manager configuration by creating .vscode/settings.json to explicitly set npm as the package manager
 - Improved AI response parsing to better handle line breaks and category detection
 - Enhanced UI to display all synonym categories (Usage, Object, Modificator, Shapes)
 - Fixed category name consistency across the codebase

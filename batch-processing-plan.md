@@ -1,7 +1,8 @@
 # Batch Processing Implementation Plan
 
 ## Overview
-This document outlines the implementation plan for batch processing in the Icon Synonyms AI Plugin. The goal is to enable users to select multiple components and generate synonyms for them sequentially, with a user-friendly interface that provides clear feedback on the process.
+This document outlines the implementation plan for batch processing in the Icon Synonyms AI Plugin. 
+The goal is to enable users to select multiple components and generate synonyms for them sequentially, with a user-friendly interface that provides clear feedback on the process.
 
 ## UI Design
 
@@ -10,17 +11,17 @@ We'll implement a table-based UI for batch processing with the following columns
 - Icon Preview (small thumbnail of the icon)
 - Component Name
 - Status (Queued, Processing, Completed, Failed)
-- Actions (View/Edit, Retry, Cancel)
+- Actions: Apply, Regenerate
 
 ```
-┌────────────────┬────────────────┬────────────────┬────────────┐
-│ Icon Preview   │ Component Name │ Status         │ Actions    │
-├────────────────┼────────────────┼────────────────┼────────────┤
-│ [Icon Image]   │ icon-home      │ ✅ Generated   │ Edit View  │
-│ [Icon Image]   │ icon-settings  │ ⏳ Processing  │ Cancel     │
-│ [Icon Image]   │ icon-user      │ ⏱️ Queued      │            │
-│ [Icon Image]   │ icon-search    │ ❌ Failed      │ Retry      │
-└────────────────┴────────────────┴────────────────┴────────────┘
+┌────────────────┬────────────────┬────────────────┐
+│ Icon Preview   │ Component Name │ Status         │
+├────────────────┼────────────────┼────────────────│
+│ [Icon Image]   │ icon-home      │ ✅ Generated   │
+│ [Icon Image]   │ icon-settings  │ ⏳ Processing  │
+│ [Icon Image]   │ icon-user      │ ⏱️ Queued      │
+│ [Icon Image]   │ icon-search    │ ❌ Failed      │
+└────────────────┴────────────────┴────────────────┘
 ```
 
 ### Batch Controls
