@@ -1,8 +1,9 @@
-// AI Service for handling OpenAI integration
+// AI Service for handling AI integration (OpenAI or JetBrains)
 import { config } from './config';
 import { getIconSynonymsPrompt } from './prompt-templates';
+import { getJetBrainsApiEntryPoint } from './jetbrains-api-config';
 
-interface OpenAIResponse {
+interface AIResponse {
   synonyms: string[];
   error?: string;
 }
@@ -61,10 +62,15 @@ function parseAIResponse(text: string): string[] {
   return result;
 }
 
-export async function generateSynonyms(params: GenerateSynonymsParams): Promise<OpenAIResponse> {
+/**
+ * Generate synonyms using OpenAI API
+ * @param params Parameters for generating synonyms
+ * @returns Response with synonyms or error
+ */
+async function generateSynonymsWithOpenAI(params: GenerateSynonymsParams): Promise<AIResponse> {
   try {
     const prompt = getIconSynonymsPrompt(params.name, params.existingDescription);
-    
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -103,7 +109,7 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
 
     // Parse the response text into structured format
     const parsedSynonyms = parseAIResponse(data.choices[0].message.content);
-    
+
     if (!parsedSynonyms || parsedSynonyms.length === 0) {
       throw new Error('No valid synonyms generated');
     }
@@ -112,10 +118,97 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
       synonyms: parsedSynonyms
     };
   } catch (error: any) {
+    console.error('Error generating synonyms with OpenAI:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate synonyms using JetBrains (Grazie) API
+ * @param params Parameters for generating synonyms
+ * @returns Response with synonyms or error
+ */
+async function generateSynonymsWithJetBrains(params: GenerateSynonymsParams): Promise<AIResponse> {
+  try {
+    const prompt = getIconSynonymsPrompt(params.name, params.existingDescription);
+
+    // Use absolute URL for the proxy server from config
+    // This is necessary in Figma plugin environment
+    const endpoint = `${config.PROXY_URL}/api/jetbrains/chat/completions`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // The proxy server will add the Grazie-Authenticate-JWT header
+      },
+      body: JSON.stringify({
+        model: 'jetbrains-chat',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/png;base64,${params.imageBase64}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 300
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`JetBrains API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Response from JetBrains API:', data);
+
+    // Parse the response according to JetBrains API format
+    const content = data.choices?.[0]?.message?.content || '';
+
+    // Parse the response text into structured format
+    const parsedSynonyms = parseAIResponse(content);
+
+    if (!parsedSynonyms || parsedSynonyms.length === 0) {
+      throw new Error('No valid synonyms generated');
+    }
+
+    return {
+      synonyms: parsedSynonyms
+    };
+  } catch (error: any) {
+    console.error('Error generating synonyms with JetBrains API:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate synonyms using the configured AI provider
+ * @param params Parameters for generating synonyms
+ * @returns Response with synonyms or error
+ */
+export async function generateSynonyms(params: GenerateSynonymsParams): Promise<AIResponse> {
+  try {
+    // Use the configured API provider
+    if (config.API_PROVIDER === 'jetbrains') {
+      return await generateSynonymsWithJetBrains(params);
+    } else {
+      return await generateSynonymsWithOpenAI(params);
+    }
+  } catch (error: any) {
     console.error('Error generating synonyms:', error);
     return {
       synonyms: [],
       error: error.message || 'Unknown error occurred'
     };
   }
-} 
+}

@@ -178,7 +178,14 @@ var init_config = __esm({
     "use strict";
     config = {
       // OpenAI API key
-      OPENAI_API_KEY: "your-api-key-here"
+      OPENAI_API_KEY: "",
+      // JetBrains API key - loaded from .env in build script or deployment
+      // For security, this should be replaced during build/deployment
+      JETBRAINS_API_KEY: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJHcmF6aWUgQXV0aGVudGljYXRpb24iLCJ1aWQiOiIyN2VhMDI3OS1jODY5LTQxM2ItYWI5OS03MDhjNGExMzg3NmYiLCJ1c2VyX3N0YXRlIjoiSU5URVJOQUwiLCJyZWdpc3RyYXRpb25fZGF0ZSI6MTY4NjE1NjUzNzA0NiwibGljZW5zZSI6IlAzSVFPTU5TMVAiLCJsaWNlbnNlX3R5cGUiOiJqZXRicmFpbnMtYWkub3JnYW5pemF0aW9uYWwucHJvIiwiZXhwIjoxNzQ0NjQwNDU1fQ.h8P5QWpyrKdbSW1oWCX_PX4NNGUCPg9sFZPjWr4doHX9fxrFU7JDJ0ItV9JNnmWXibJmTCx-n4LGwlQGkBmBQnlsLVOw_PH7latTrj5NS8JrsxwEd7sdJT3h2hTpINg_mwSVUjWYQFpA4-XwvUhqcYiGZ4bTXTouKOvLm_wo2spQOu5OhxhguXjYknWdIAgpAzhDP8PtqM3QYjqvGP9RM5zBPg6VYZ43FGVlKT5NSUh8huxWQwT3arPS0ys48Hyi--nESfyjEW1wctexfDcOuAyE-8DqCqR9vHTa_EWAfgfcJBL6-qywTapgAvOtFj0yCMuDXasFwwcQg-5n1CR1wA",
+      // API provider to use ('openai' or 'jetbrains')
+      API_PROVIDER: "jetbrains",
+      // Proxy server settings
+      PROXY_URL: "http://localhost:3000"
     };
   }
 });
@@ -259,7 +266,7 @@ function parseAIResponse(text) {
   console.log("Parsed response lines:", result);
   return result;
 }
-async function generateSynonyms(params) {
+async function generateSynonymsWithOpenAI(params) {
   try {
     const prompt = getIconSynonymsPrompt(params.name, params.existingDescription);
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -302,6 +309,73 @@ async function generateSynonyms(params) {
     return {
       synonyms: parsedSynonyms
     };
+  } catch (error) {
+    console.error("Error generating synonyms with OpenAI:", error);
+    throw error;
+  }
+}
+async function generateSynonymsWithJetBrains(params) {
+  var _a, _b, _c;
+  try {
+    const prompt = getIconSynonymsPrompt(params.name, params.existingDescription);
+    const endpoint = "https://platform.jetbrains.ai/api/v1/chat/completions";
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Grazie-Authenticate-JWT": config.JETBRAINS_API_KEY,
+        "Grazie-Agent": JSON.stringify({
+          name: "icons-synonyms-ai",
+          version: "1.0.0"
+        })
+      },
+      body: JSON.stringify({
+        model: "jetbrains-chat",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: prompt
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/png;base64,${params.imageBase64}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 300
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`JetBrains API error: ${response.statusText}`);
+    }
+    const data = await response.json();
+    console.log("Response from JetBrains API:", data);
+    const content = ((_c = (_b = (_a = data.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message) == null ? void 0 : _c.content) || "";
+    const parsedSynonyms = parseAIResponse(content);
+    if (!parsedSynonyms || parsedSynonyms.length === 0) {
+      throw new Error("No valid synonyms generated");
+    }
+    return {
+      synonyms: parsedSynonyms
+    };
+  } catch (error) {
+    console.error("Error generating synonyms with JetBrains API:", error);
+    throw error;
+  }
+}
+async function generateSynonyms(params) {
+  try {
+    if (config.API_PROVIDER === "jetbrains") {
+      return await generateSynonymsWithJetBrains(params);
+    } else {
+      return await generateSynonymsWithOpenAI(params);
+    }
   } catch (error) {
     console.error("Error generating synonyms:", error);
     return {
