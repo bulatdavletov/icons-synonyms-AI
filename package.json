@@ -3,14 +3,17 @@
   "version": "1.0.0",
   "description": "Your Figma Plugin",
   "scripts": {
-    "build": "build-figma-plugin --typecheck --minify",
-    "watch": "build-figma-plugin --typecheck --watch"
+    "prebuild": "node scripts/prebuild.js",
+    "build": "npm run prebuild && build-figma-plugin --typecheck --minify",
+    "watch": "npm run prebuild && build-figma-plugin --typecheck --watch",
+    "dev": "npm run prebuild && build-figma-plugin --typecheck --watch"
   },
   "author": "",
   "license": "",
   "dependencies": {
     "@create-figma-plugin/ui": "^4.0.0-alpha.0",
     "@create-figma-plugin/utilities": "^4.0.0-alpha.0",
+    "dotenv": "^16.5.0",
     "preact": "^10.26.4"
   },
   "devDependencies": {
@@ -18,6 +21,7 @@
     "@create-figma-plugin/tsconfig": "^4.0.0-alpha.0",
     "@figma/plugin-typings": "*",
     "@types/node": "^22.13.10",
+    "esbuild": "^0.25.3",
     "typescript": "^5.3.2"
   },
   "figma-plugin": {
