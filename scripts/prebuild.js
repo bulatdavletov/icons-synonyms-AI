@@ -17,7 +17,7 @@ try {
 // DO NOT EDIT DIRECTLY - make changes to .env instead
 
 export const config = {
-  // OpenAI API key from .env
+  // OpenAI API key from .env - actual value is loaded at build time
   OPENAI_API_KEY: '${apiKey}'
 };
 

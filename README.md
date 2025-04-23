@@ -20,10 +20,10 @@ npm install --save-dev @figma/plugin-typings
 npm install @create-figma-plugin/ui preact # New UI framework
 ```
 4. Set up API keys:
-   - Copy `src/config.template.ts` to `src/config.ts`
-   - Copy `src/api-keys.template.ts` to `src/api-keys.ts`
-   - Add your OpenAI API key to both files
-   - These files are gitignored to prevent API keys from being committed
+   - Create a `.env` file in the root directory
+   - Add your OpenAI API key in the format: `OPENAI_API_KEY=your-api-key-here`
+   - The prebuild script will automatically copy this key to `src/config.ts` during build
+   - Both `.env` and `src/config.ts` are gitignored to prevent API keys from being committed
 
 ## Project Structure
 ```
@@ -32,12 +32,15 @@ icons-synonyms-AI/
 ├── code.js             # Bundled JavaScript (from esbuild)
 ├── ui.html             # Plugin interface
 ├── manifest.json       # Plugin configuration
+├── .env                # Environment variables (gitignored)
 ├── src/
 │   ├── ai-service.ts   # AI API integration
-│   ├── api-keys.ts     # API keys (gitignored)
+│   ├── config.ts       # Configuration generated from .env (gitignored)
+│   ├── config.template.ts # Configuration template
 │   ├── icon-exporter.ts # Icon export functionality
 │   └── components/     # UI components
-├── esbuild.config.js   # esbuild configuration
+├── scripts/
+│   └── prebuild.js     # Script to copy API key from .env to config.ts
 └── tsconfig.json       # TypeScript configuration
 ```
 
