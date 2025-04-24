@@ -31,7 +31,7 @@ export default function () {
           ? node.mainComponent?.description || ""
           : node.description || ""
         
-        emit('SELECTION_CHANGE', {
+        emit('selection-change', {
           name: node.name,
           type: node.type,
           description,
@@ -42,7 +42,7 @@ export default function () {
   }
 
   // Handle messages from the UI
-  on('GENERATE_SYNONYMS', async () => {
+  on('generate-synonyms', async () => {
     try {
       // Show loading state
       figma.notify("Generating synonyms...")
@@ -54,7 +54,7 @@ export default function () {
       const nodeToExport = getBestNodeToExport(selection)
       
       if (!nodeToExport) {
-        emit('GENERATE_ERROR', {
+        emit('generate-error', {
           error: 'No valid icon selected'
         })
         return
@@ -97,26 +97,26 @@ export default function () {
         }
       ]
       
-      emit('SYNONYMS_GENERATED', { groups })
+      emit('synonyms-generated', { groups })
       
       figma.notify("Synonyms generated successfully!")
     } catch (error: any) {
       console.error('Error in generate-synonyms handler:', error)
-      emit('GENERATE_ERROR', {
+      emit('generate-error', {
         error: error.message || 'Unknown error occurred'
       })
       figma.notify("Error generating synonyms")
     }
   })
 
-  on('UPDATE_DESCRIPTION', (data: { synonyms: string[] }) => {
+  on('update-description', (data: { synonyms: string[] }) => {
     const selection = figma.currentPage.selection[0]
     if (selection && (selection.type === "COMPONENT" || selection.type === "COMPONENT_SET")) {
       try {
         selection.description = data.synonyms.join(', ')
         figma.notify('Description updated successfully!')
       } catch (error: any) {
-        emit('GENERATE_ERROR', {
+        emit('generate-error', {
           error: 'Failed to update description: ' + error.message
         })
       }
@@ -124,7 +124,7 @@ export default function () {
   })
 
   // Request UI to check for selection on startup
-  on('UI_READY', () => {
+  on('ui-ready', () => {
     sendSelectionToUI()
   })
 

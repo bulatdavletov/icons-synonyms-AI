@@ -216,11 +216,30 @@ export default function () {
     }
   })
 
+  // Request UI to check for selection on startup
+  on('ui-ready', () => {
+    console.log('UI is ready, sending initial selection');
+    // Send current selection to UI
+    sendSelectionToUI();
+    
+    // Check if we have a selection but it wasn't sent correctly
+    const selection = figma.currentPage.selection;
+    if (selection.length > 0) {
+      // Add a small delay to ensure UI is fully initialized
+      setTimeout(() => {
+        console.log('Sending selection again after delay');
+        sendSelectionToUI();
+      }, 200);
+    }
+  });
+
   // Listen for selection changes
   figma.on("selectionchange", () => {
-    sendSelectionToUI()
-  })
+    sendSelectionToUI();
+  });
 
   // Initial selection check
-  sendSelectionToUI()
+  setTimeout(() => {
+    sendSelectionToUI();
+  }, 100);
 } 

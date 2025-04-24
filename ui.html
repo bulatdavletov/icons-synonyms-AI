@@ -269,7 +269,7 @@
       console.log('UI is ready');
       parent.postMessage({ 
         pluginMessage: { 
-          type: 'UI_READY'
+          type: 'ui-ready'
         }
       }, '*');
     };
@@ -320,7 +320,7 @@
       // Debug: Log the message received from the plugin
       console.log('Message received from plugin:', msg);
       
-      if (msg.type === 'SELECTION_CHANGE') {
+      if (msg.type === 'selection-change') {
         document.getElementById('name').textContent = msg.name || 'Select a component';
         document.getElementById('type').textContent = msg.type;
         
@@ -354,7 +354,7 @@
         // Clear selected synonyms
         selectedSynonyms.clear();
         updateSelectedCount();
-      } else if (msg.type === 'SYNONYMS_GENERATED') {
+      } else if (msg.type === 'synonyms-generated') {
         // Hide loading indicator
         loadingSection.style.display = 'none';
         
@@ -434,7 +434,7 @@
           errorSection.style.display = 'block';
           synonymsSection.style.display = 'none';
         }
-      } else if (msg.type === 'DESCRIPTION_UPDATED') {
+      } else if (msg.type === 'description-updated') {
         // Update the displayed description
         const descriptionElement = document.getElementById('description');
         
@@ -466,7 +466,7 @@
         setTimeout(() => {
           successMessage.remove();
         }, 3000);
-      } else if (msg.type === 'GENERATE_ERROR') {
+      } else if (msg.type === 'generate-error') {
         // Hide loading indicator
         loadingSection.style.display = 'none';
         
@@ -497,7 +497,7 @@
       // Send message to plugin
       parent.postMessage({
         pluginMessage: {
-          type: 'GENERATE_SYNONYMS',
+          type: 'generate-synonyms',
           apiKey
         }
       }, '*');
@@ -573,7 +573,7 @@
       // Send message to update the description
       parent.postMessage({
         pluginMessage: {
-          type: 'UPDATE_DESCRIPTION',
+          type: 'update-description',
           description: newDescription
         }
       }, '*');
