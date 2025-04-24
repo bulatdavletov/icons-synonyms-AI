@@ -25,6 +25,18 @@ npm install @create-figma-plugin/ui preact # New UI framework
    - The prebuild script will automatically copy this key to `src/config.ts` during build
    - Both `.env` and `src/config.ts` are gitignored to prevent API keys from being committed
 
+## API Key Security
+
+We take the security of API keys very seriously:
+
+1. API keys are only stored in the `.env` file, which is git-ignored
+2. The prebuild script copies the API key to `src/config.ts` (also git-ignored)
+3. A `check-secrets.js` script runs after builds to detect any API keys in build files
+4. The script masks API key values in log outputs
+5. Never commit build files or `.env` files to the repository
+
+If a build contains API keys, the build process will fail with an error message.
+
 ## Project Structure
 ```
 icons-synonyms-AI/

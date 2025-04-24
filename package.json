@@ -4,9 +4,11 @@
   "description": "Your Figma Plugin",
   "scripts": {
     "prebuild": "node scripts/prebuild.js",
-    "build": "npm run prebuild && build-figma-plugin --typecheck --minify",
+    "build": "npm run prebuild && build-figma-plugin --typecheck --minify && npm run check-secrets",
     "watch": "npm run prebuild && build-figma-plugin --typecheck --watch",
-    "dev": "npm run prebuild && build-figma-plugin --typecheck --watch"
+    "dev": "npm run prebuild && build-figma-plugin --typecheck --watch",
+    "check-secrets": "node scripts/check-secrets.js",
+    "precommit": "npm run check-secrets"
   },
   "author": "",
   "license": "",

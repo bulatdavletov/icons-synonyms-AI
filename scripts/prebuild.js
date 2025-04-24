@@ -11,6 +11,9 @@ try {
   const apiKeyMatch = envContent.match(/OPENAI_API_KEY=([^\r\n]+)/);
   const apiKey = apiKeyMatch && apiKeyMatch[1] ? apiKeyMatch[1].trim() : '';
   
+  // For logging only - mask the actual key if present
+  const maskedKey = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}` : 'not found';
+  
   // Create config.ts file
   const configPath = path.resolve(__dirname, '..', 'src', 'config.ts');
   const configContent = `// Auto-generated from .env by prebuild script
@@ -30,7 +33,7 @@ if (!config.OPENAI_API_KEY) {
   // Write config.ts file
   fs.writeFileSync(configPath, configContent, 'utf8');
   
-  console.log('✅ Successfully copied API key from .env to config.ts');
+  console.log(`✅ Successfully copied API key (${maskedKey}) from .env to config.ts`);
 } catch (error) {
   console.error('❌ Error creating config.ts from .env:', error);
   process.exit(1);

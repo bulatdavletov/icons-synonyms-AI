@@ -1,6 +1,6 @@
 // AI Service for handling OpenAI integration
 import { config } from './config';
-import { getIconSynonymsPrompt } from './prompt-templates';
+import { getIconSynonymsPrompt } from './prompts/Prompt';
 
 interface OpenAIResponse {
   synonyms: string[];
