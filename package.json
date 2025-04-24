@@ -1,0 +1,38 @@
+{
+  "name": "icons-synonyms-AI",
+  "version": "1.0.0",
+  "description": "Your Figma Plugin",
+  "scripts": {
+    "prebuild": "node scripts/prebuild.js",
+    "build": "npm run prebuild && build-figma-plugin --typecheck --minify && npm run check-secrets",
+    "watch": "npm run prebuild && build-figma-plugin --typecheck --watch",
+    "dev": "npm run prebuild && build-figma-plugin --typecheck --watch",
+    "check-secrets": "node scripts/check-secrets.js",
+    "precommit": "npm run check-secrets"
+  },
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "@create-figma-plugin/ui": "^4.0.0-alpha.0",
+    "@create-figma-plugin/utilities": "^4.0.0-alpha.0",
+    "dotenv": "^16.5.0",
+    "preact": "^10.26.4"
+  },
+  "devDependencies": {
+    "@create-figma-plugin/build": "^4.0.0-alpha.0",
+    "@create-figma-plugin/tsconfig": "^4.0.0-alpha.0",
+    "@figma/plugin-typings": "*",
+    "@types/node": "^22.13.10",
+    "esbuild": "^0.25.3",
+    "typescript": "^5.3.2"
+  },
+  "figma-plugin": {
+    "id": "1481361200325156818",
+    "name": "icons-synonyms-AI",
+    "main": "src/main.ts",
+    "ui": "src/ui.tsx",
+    "editorType": [
+      "figma"
+    ]
+  }
+}

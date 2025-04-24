@@ -1,0 +1,15 @@
+# Node
+*.log
+*.log.*
+node_modules
+
+out/
+dist/
+build/
+code.js
+code.js.map
+
+# API Keys and Config
+src/api-keys.ts
+src/config.ts
+.env
