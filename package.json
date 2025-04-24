@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "description": "Your Figma Plugin",
   "scripts": {
-    "prebuild": "node scripts/prebuild.js",
-    "build": "npm run prebuild && build-figma-plugin --typecheck --minify && npm run check-secrets",
-    "watch": "npm run prebuild && build-figma-plugin --typecheck --watch",
-    "dev": "npm run prebuild && build-figma-plugin --typecheck --watch",
+    "build": "build-figma-plugin --typecheck --minify && npm run check-secrets",
+    "watch": "build-figma-plugin --typecheck --watch",
+    "dev": "build-figma-plugin --typecheck --watch",
     "check-secrets": "node scripts/check-secrets.js",
     "precommit": "npm run check-secrets"
   },
@@ -15,7 +14,6 @@
   "dependencies": {
     "@create-figma-plugin/ui": "^4.0.0-alpha.0",
     "@create-figma-plugin/utilities": "^4.0.0-alpha.0",
-    "dotenv": "^16.5.0",
     "preact": "^10.26.4"
   },
   "devDependencies": {

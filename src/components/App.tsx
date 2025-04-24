@@ -4,8 +4,8 @@ import { emit, on } from '@create-figma-plugin/utilities'
 import { ComponentInfo } from './ComponentInfo'
 import { Settings } from './Settings'
 import { Button, Container, Text, VerticalSpace, Tabs } from '@create-figma-plugin/ui'
-import type { ComponentInfo as ComponentInfoType } from '../types'
-import type { SynonymGroup } from '../types'
+import type { ComponentInfo as ComponentInfoType } from '../types/index'
+import type { SynonymGroup } from '../types/index'
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('main')

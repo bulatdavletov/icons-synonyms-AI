@@ -3,13 +3,25 @@
 *.log.*
 node_modules
 
+# Build outputs
 out/
 dist/
 build/
+
+# Generated files
 code.js
 code.js.map
+src/**/*.js
+src/**/*.js.map
+*.tsbuildinfo
 
 # API Keys and Config
 src/api-keys.ts
+src/api-keys.template.ts
 src/config.ts
+src/config.template.ts
 .env
+
+# OS files
+.DS_Store
+Thumbs.db

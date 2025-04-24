@@ -1,5 +1,5 @@
 // AI Service for handling OpenAI integration
-import { getIconSynonymsPrompt } from '../Prompt';
+import { getIconSynonymsPrompt } from '../utils/prompt';
 
 interface OpenAIResponse {
   synonyms: string[];
@@ -25,34 +25,22 @@ function parseAIResponse(text: string): string[] {
     .map(line => line.trim())
     .filter(line => line.length > 0);
 
+  // Categories we're looking for
+  const categories = ['usage', 'object', 'modificator', 'shapes'];
+  
   // Initialize result array
   const result: string[] = [];
 
   // Process each line
   for (const line of lines) {
-    // Check for each category
-    if (line.toLowerCase().startsWith('usage:')) {
-      result.push(line);
-    }
-    else if (line.toLowerCase().startsWith('object:')) {
-      result.push(line);
-    }
-    else if (line.toLowerCase().startsWith('modificator:')) {
-      result.push(line);
-    }
-    else if (line.toLowerCase().startsWith('shapes:')) {
-      result.push(line);
-    }
-    // Handle cases where the category name might be on a separate line
-    else if (line === 'Usage' || line === 'Object' || line === 'Modificator' || line === 'Shapes') {
-      continue; // Skip category headers without values
-    }
-    // If line contains a colon, it might be a category
-    else if (line.includes(':')) {
-      const [category, ...rest] = line.split(':');
-      const trimmedCategory = category.trim();
-      if (['usage', 'object', 'modificator', 'shapes'].includes(trimmedCategory.toLowerCase())) {
-        result.push(`${trimmedCategory}: ${rest.join(':').trim()}`);
+    // Check if line contains a category
+    const colonIndex = line.indexOf(':');
+    if (colonIndex > 0) {
+      const category = line.substring(0, colonIndex).trim().toLowerCase();
+      
+      // If the category is one we're looking for, add it to the result
+      if (categories.includes(category)) {
+        result.push(line);
       }
     }
   }
@@ -61,6 +49,11 @@ function parseAIResponse(text: string): string[] {
   return result;
 }
 
+/**
+ * Generate synonyms for an icon using OpenAI
+ * @param params Parameters including icon name, image, and API key
+ * @returns Promise resolving to synonyms or error
+ */
 export async function generateSynonyms(params: GenerateSynonymsParams): Promise<OpenAIResponse> {
   try {
     // Check if API key is available
@@ -100,8 +93,16 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(`OpenAI API error: ${response.statusText}${errorData ? ' - ' + JSON.stringify(errorData) : ''}`);
+      let errorMessage = `OpenAI API error: ${response.statusText}`;
+      
+      try {
+        const errorData = await response.json();
+        errorMessage += ` - ${JSON.stringify(errorData)}`;
+      } catch (jsonError) {
+        // If we can't parse the JSON, just use the original error message
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -111,7 +112,7 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     const parsedSynonyms = parseAIResponse(data.choices[0].message.content);
     
     if (!parsedSynonyms || parsedSynonyms.length === 0) {
-      throw new Error('No valid synonyms generated');
+      throw new Error('No valid synonyms generated. Try again or use a different icon.');
     }
 
     return {
@@ -121,7 +122,7 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     console.error('Error generating synonyms:', error);
     return {
       synonyms: [],
-      error: error.message || 'Unknown error occurred'
+      error: error.message || 'Unknown error occurred while generating synonyms.'
     };
   }
 } 

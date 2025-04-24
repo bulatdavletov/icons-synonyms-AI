@@ -253,17 +253,6 @@
       selectedCount.textContent = `${selectedSynonyms.size} synonyms selected`;
     }
     
-    // Try to load API key from localStorage
-    try {
-      if (localStorage && localStorage.getItem('openai_api_key')) {
-        // We still use the stored API key, but don't show the input field
-        const storedApiKey = localStorage.getItem('openai_api_key');
-      }
-    } catch (e) {
-      console.warn('localStorage is not available:', e);
-      // Continue without localStorage
-    }
-
     // Send a message to the plugin that the UI is ready
     window.onload = () => {
       console.log('UI is ready');
@@ -479,16 +468,6 @@
     
     // Handle generate button click
     generateButton.onclick = () => {
-      // Get API key from localStorage if available
-      let apiKey = '';
-      try {
-        if (localStorage && localStorage.getItem('openai_api_key')) {
-          apiKey = localStorage.getItem('openai_api_key');
-        }
-      } catch (e) {
-        console.warn('localStorage is not available:', e);
-      }
-      
       // Show loading indicator
       loadingSection.style.display = 'flex';
       errorSection.style.display = 'none';
@@ -497,8 +476,7 @@
       // Send message to plugin
       parent.postMessage({
         pluginMessage: {
-          type: 'generate-synonyms',
-          apiKey
+          type: 'generate-synonyms'
         }
       }, '*');
     };

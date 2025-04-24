@@ -1,9 +1,49 @@
 import { emit, on, showUI } from '@create-figma-plugin/utilities'
-import { exportNodeAsBase64, getBestNodeToExport } from './icon-exporter'
-import { generateSynonyms } from './ai-service'
-import { Handler } from './types'
+import { exportNodeAsBase64, getBestNodeToExport } from './utils/icon-exporter'
+import { generateSynonyms } from './services/ai-service'
+import { Handler } from './types/index'
 
 const STORAGE_KEY = 'openai-api-key'
+
+/**
+ * Groups synonyms by category
+ * @param synonyms Array of category-prefixed synonym strings
+ * @returns Grouped synonyms by category
+ */
+function groupSynonymsByCategory(synonyms: string[]) {
+  return [
+    {
+      title: 'Usage',
+      synonyms: synonyms
+        .filter(s => s.toLowerCase().startsWith('usage:'))
+        .map(s => s.replace(/^usage:\s*/i, '').trim())
+    },
+    {
+      title: 'Object',
+      synonyms: synonyms
+        .filter(s => s.toLowerCase().startsWith('object:'))
+        .map(s => s.replace(/^object:\s*/i, '').trim())
+        .flatMap(s => s.split(',').map(term => term.trim()))
+        .filter(s => s.length > 0)
+    },
+    {
+      title: 'Modificator',
+      synonyms: synonyms
+        .filter(s => s.toLowerCase().startsWith('modificator:'))
+        .map(s => s.replace(/^modificator:\s*/i, '').trim())
+        .flatMap(s => s.split(',').map(term => term.trim()))
+        .filter(s => s.length > 0)
+    },
+    {
+      title: 'Shapes',
+      synonyms: synonyms
+        .filter(s => s.toLowerCase().startsWith('shapes:'))
+        .map(s => s.replace(/^shapes:\s*/i, '').trim())
+        .flatMap(s => s.split(',').map(term => term.trim()))
+        .filter(s => s.length > 0)
+    }
+  ].filter(group => group.synonyms.length > 0) // Only include groups with synonyms
+}
 
 export default function () {
   showUI({
@@ -128,41 +168,15 @@ export default function () {
         apiKey
       })
       
+      if (result.error) {
+        emit('generate-error', { error: result.error })
+        return
+      }
+      
       console.log('Raw synonyms from AI:', result.synonyms)
       
-      // Group synonyms by category according to Answer Structure
-      const groups = [
-        {
-          title: 'Usage',
-          synonyms: result.synonyms
-            .filter(s => s.toLowerCase().startsWith('usage:'))
-            .map(s => s.replace(/^usage:\s*/i, '').trim())
-        },
-        {
-          title: 'Object',
-          synonyms: result.synonyms
-            .filter(s => s.toLowerCase().startsWith('object:'))
-            .map(s => s.replace(/^object:\s*/i, '').trim())
-            .flatMap(s => s.split(',').map(term => term.trim()))
-            .filter(s => s.length > 0)
-        },
-        {
-          title: 'Modificator',
-          synonyms: result.synonyms
-            .filter(s => s.toLowerCase().startsWith('modificator:'))
-            .map(s => s.replace(/^modificator:\s*/i, '').trim())
-            .flatMap(s => s.split(',').map(term => term.trim()))
-            .filter(s => s.length > 0)
-        },
-        {
-          title: 'Shapes',
-          synonyms: result.synonyms
-            .filter(s => s.toLowerCase().startsWith('shapes:'))
-            .map(s => s.replace(/^shapes:\s*/i, '').trim())
-            .flatMap(s => s.split(',').map(term => term.trim()))
-            .filter(s => s.length > 0)
-        }
-      ].filter(group => group.synonyms.length > 0) // Only include groups with synonyms
+      // Group synonyms by category
+      const groups = groupSynonymsByCategory(result.synonyms)
       
       console.log('Grouped synonyms:', groups)
       
@@ -184,62 +198,51 @@ export default function () {
       try {
         const existingDescription = selection.description || ''
         
-        // Group synonyms by category
-        const usageTerms = data.synonyms.filter(s => s.toLowerCase().startsWith('usage:'))
-          .map(s => s.replace(/^usage:\s*/i, '').trim())
-        const objectTerms = data.synonyms.filter(s => s.toLowerCase().startsWith('object:'))
-          .map(s => s.replace(/^object:\s*/i, '').trim())
-        const modificatorTerms = data.synonyms.filter(s => s.toLowerCase().startsWith('modificator:'))
-          .map(s => s.replace(/^modificator:\s*/i, '').trim())
-        const shapeTerms = data.synonyms.filter(s => s.toLowerCase().startsWith('shapes:'))
-          .map(s => s.replace(/^shapes:\s*/i, '').trim())
+        // Group synonyms by category using the helper function
+        const synonymsByCategory = {
+          usage: data.synonyms.filter(s => s.toLowerCase().startsWith('usage:'))
+            .map(s => s.replace(/^usage:\s*/i, '').trim()),
+          object: data.synonyms.filter(s => s.toLowerCase().startsWith('object:'))
+            .map(s => s.replace(/^object:\s*/i, '').trim()),
+          modificator: data.synonyms.filter(s => s.toLowerCase().startsWith('modificator:'))
+            .map(s => s.replace(/^modificator:\s*/i, '').trim()),
+          shapes: data.synonyms.filter(s => s.toLowerCase().startsWith('shapes:'))
+            .map(s => s.replace(/^shapes:\s*/i, '').trim())
+        }
 
         // Build the new description lines
         const newLines = []
-        if (usageTerms.length > 0) newLines.push(`Usage: ${usageTerms.join(', ')}`)
-        if (objectTerms.length > 0) newLines.push(`Object: ${objectTerms.join(', ')}`)
-        if (modificatorTerms.length > 0) newLines.push(`Modificator: ${modificatorTerms.join(', ')}`)
-        if (shapeTerms.length > 0) newLines.push(`Shapes: ${shapeTerms.join(', ')}`)
+        if (synonymsByCategory.usage.length > 0) newLines.push(`Usage: ${synonymsByCategory.usage.join(', ')}`)
+        if (synonymsByCategory.object.length > 0) newLines.push(`Object: ${synonymsByCategory.object.join(', ')}`)
+        if (synonymsByCategory.modificator.length > 0) newLines.push(`Modificator: ${synonymsByCategory.modificator.join(', ')}`)
+        if (synonymsByCategory.shapes.length > 0) newLines.push(`Shapes: ${synonymsByCategory.shapes.join(', ')}`)
         
-        // Combine existing description with new lines
-        const newDescription = existingDescription
-          ? `${existingDescription}\n${newLines.join('\n')}`
-          : newLines.join('\n')
+        // Add the new description to the component
+        selection.description = newLines.join('\n')
         
-        selection.description = newDescription
+        // Notify the UI that the description was updated
+        emit('description-updated', {
+          description: selection.description,
+          hasDescription: Boolean(selection.description)
+        })
+        
         figma.notify('Description updated successfully!')
       } catch (error: any) {
-        emit('generate-error', {
-          error: 'Failed to update description: ' + error.message
+        console.error('Error updating description:', error)
+        emit('generate-error', { 
+          error: error.message || 'Failed to update description'
         })
       }
+    } else {
+      emit('generate-error', { 
+        error: 'No component selected'
+      })
     }
   })
 
-  // Request UI to check for selection on startup
-  on('ui-ready', () => {
-    console.log('UI is ready, sending initial selection');
-    // Send current selection to UI
-    sendSelectionToUI();
-    
-    // Check if we have a selection but it wasn't sent correctly
-    const selection = figma.currentPage.selection;
-    if (selection.length > 0) {
-      // Add a small delay to ensure UI is fully initialized
-      setTimeout(() => {
-        console.log('Sending selection again after delay');
-        sendSelectionToUI();
-      }, 200);
-    }
-  });
-
-  // Listen for selection changes
-  figma.on("selectionchange", () => {
-    sendSelectionToUI();
-  });
-
-  // Initial selection check
-  setTimeout(() => {
-    sendSelectionToUI();
-  }, 100);
+  // Initialize
+  figma.on('selectionchange', sendSelectionToUI)
+  
+  // Initial state
+  sendSelectionToUI()
 } 
