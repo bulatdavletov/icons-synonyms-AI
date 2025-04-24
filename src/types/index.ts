@@ -27,6 +27,11 @@ export interface Handler {
   'synonyms-generated': (data: { groups: SynonymGroup[] }) => void
   'generate-error': (data: { error: string }) => void
   'update-description': (data: { synonyms: string[] }) => void
+  'get-api-key': () => void
+  'api-key-response': (data: { apiKey: string }) => void
+  'save-api-key': (data: { apiKey: string }) => void
+  'api-key-save-error': (data: { error: string }) => void
+  'api-key-saved': () => void
 }
 
 export type HandlerEvent<K extends keyof Handler> = {

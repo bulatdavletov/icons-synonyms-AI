@@ -311,14 +311,14 @@
       
       if (msg.type === 'selection-change') {
         document.getElementById('name').textContent = msg.name || 'Select a component';
-        document.getElementById('type').textContent = msg.type;
+        document.getElementById('type').textContent = msg.nodeType;
         
         // Update description display based on hasDescription flag
         const descriptionElement = document.getElementById('description');
         if (msg.hasDescription) {
           descriptionElement.textContent = msg.description;
         } else {
-          if (msg.type === 'COMPONENT' || msg.type === 'COMPONENT_SET' || msg.type === 'INSTANCE') {
+          if (msg.nodeType === 'COMPONENT' || msg.nodeType === 'COMPONENT_SET' || msg.nodeType === 'INSTANCE') {
             descriptionElement.textContent = 'No description';
             descriptionElement.style.fontStyle = 'italic';
             descriptionElement.style.color = '#999';
@@ -333,7 +333,7 @@
         currentDescription = msg.description || '';
         
         // Update button state
-        currentNodeType = msg.type;
+        currentNodeType = msg.nodeType;
         updateButtonState();
         
         // Hide synonyms section when selection changes
@@ -519,40 +519,11 @@
         return;
       }
       
-      // Format the selected synonyms
-      const synonymsString = Array.from(selectedSynonyms).join(', ');
-      
-      // Create the new description with the format "Synonyms: x, y, z, etc"
-      let newDescription = currentDescription;
-      
-      // Check if the description already has a Synonyms section
-      const synonymsRegex = /Synonyms:\s*([^]*?)(?=\n\n|$)/;
-      const match = currentDescription.match(synonymsRegex);
-      
-      if (match) {
-        // Replace existing synonyms section
-        newDescription = currentDescription.replace(
-          synonymsRegex,
-          `Synonyms: ${synonymsString}`
-        );
-      } else {
-        // Add new synonyms section
-        if (currentDescription && !currentDescription.endsWith('\n\n')) {
-          // Add double newline if needed
-          if (currentDescription.endsWith('\n')) {
-            newDescription += '\n';
-          } else {
-            newDescription += '\n\n';
-          }
-        }
-        newDescription += `Synonyms: ${synonymsString}`;
-      }
-      
-      // Send message to update the description
+      // Send message to update the description with selected synonyms
       parent.postMessage({
         pluginMessage: {
           type: 'update-description',
-          description: newDescription
+          synonyms: Array.from(selectedSynonyms)
         }
       }, '*');
     };

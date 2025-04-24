@@ -73,9 +73,10 @@ export default function () {
           ? node.mainComponent?.description || ""
           : node.description || ""
         
-        emit('selection-change', {
+        figma.ui.postMessage({
+          type: 'selection-change',
           name: node.name,
-          type: node.type,
+          nodeType: node.type,
           description,
           hasDescription
         })
@@ -88,10 +89,16 @@ export default function () {
     try {
       // Get API key from client storage
       const apiKey = await figma.clientStorage.getAsync(STORAGE_KEY)
-      emit('api-key-response', { apiKey: apiKey || '' })
+      figma.ui.postMessage({ 
+        type: 'api-key-response', 
+        apiKey: apiKey || '' 
+      })
     } catch (error) {
       console.error('Error retrieving API key:', error)
-      emit('api-key-response', { apiKey: '' })
+      figma.ui.postMessage({ 
+        type: 'api-key-response', 
+        apiKey: '' 
+      })
     }
   })
 
@@ -100,21 +107,30 @@ export default function () {
     try {
       // Validate API key (simple check that it's not empty and looks like an OpenAI key)
       if (!data.apiKey || !data.apiKey.trim()) {
-        emit('api-key-save-error', { error: 'API key cannot be empty' })
+        figma.ui.postMessage({ 
+          type: 'api-key-save-error', 
+          error: 'API key cannot be empty' 
+        })
         return
       }
 
       if (!data.apiKey.startsWith('sk-')) {
-        emit('api-key-save-error', { error: 'Invalid API key format. OpenAI keys start with "sk-"' })
+        figma.ui.postMessage({ 
+          type: 'api-key-save-error', 
+          error: 'Invalid API key format. OpenAI keys start with "sk-"' 
+        })
         return
       }
 
       // Save API key to client storage
       await figma.clientStorage.setAsync(STORAGE_KEY, data.apiKey.trim())
-      emit('api-key-saved')
+      figma.ui.postMessage({ type: 'api-key-saved' })
     } catch (error: any) {
       console.error('Error saving API key:', error)
-      emit('api-key-save-error', { error: error.message || 'Failed to save API key' })
+      figma.ui.postMessage({ 
+        type: 'api-key-save-error', 
+        error: error.message || 'Failed to save API key' 
+      })
     }
   })
 
@@ -125,7 +141,8 @@ export default function () {
       const apiKey = await figma.clientStorage.getAsync(STORAGE_KEY)
       
       if (!apiKey) {
-        emit('generate-error', {
+        figma.ui.postMessage({ 
+          type: 'generate-error',
           error: 'API key not found. Please set your OpenAI API key in the Settings tab.'
         })
         return
@@ -141,7 +158,8 @@ export default function () {
       const nodeToExport = getBestNodeToExport(selection)
       
       if (!nodeToExport) {
-        emit('generate-error', {
+        figma.ui.postMessage({ 
+          type: 'generate-error',
           error: 'No valid icon selected'
         })
         return
@@ -169,7 +187,10 @@ export default function () {
       })
       
       if (result.error) {
-        emit('generate-error', { error: result.error })
+        figma.ui.postMessage({ 
+          type: 'generate-error', 
+          error: result.error 
+        })
         return
       }
       
@@ -180,12 +201,16 @@ export default function () {
       
       console.log('Grouped synonyms:', groups)
       
-      emit('synonyms-generated', { groups })
+      figma.ui.postMessage({ 
+        type: 'synonyms-generated', 
+        groups 
+      })
       
       figma.notify("Synonyms generated successfully!")
     } catch (error: any) {
       console.error('Error in generate-synonyms handler:', error)
-      emit('generate-error', {
+      figma.ui.postMessage({ 
+        type: 'generate-error',
         error: error.message || 'Unknown error occurred'
       })
       figma.notify("Error generating synonyms")
@@ -221,7 +246,8 @@ export default function () {
         selection.description = newLines.join('\n')
         
         // Notify the UI that the description was updated
-        emit('description-updated', {
+        figma.ui.postMessage({ 
+          type: 'description-updated',
           description: selection.description,
           hasDescription: Boolean(selection.description)
         })
@@ -229,12 +255,14 @@ export default function () {
         figma.notify('Description updated successfully!')
       } catch (error: any) {
         console.error('Error updating description:', error)
-        emit('generate-error', { 
+        figma.ui.postMessage({ 
+          type: 'generate-error', 
           error: error.message || 'Failed to update description'
         })
       }
     } else {
-      emit('generate-error', { 
+      figma.ui.postMessage({ 
+        type: 'generate-error', 
         error: 'No component selected'
       })
     }
@@ -243,6 +271,158 @@ export default function () {
   // Initialize
   figma.on('selectionchange', sendSelectionToUI)
   
+  // Listen for UI ready message
+  figma.ui.onmessage = (msg) => {
+    console.log('Message from UI:', msg);
+    
+    if (msg.type === 'ui-ready') {
+      // Send initial selection when UI is ready
+      console.log('UI is ready, sending initial selection');
+      sendSelectionToUI();
+    } else if (msg.type === 'generate-synonyms') {
+      // Handle synonym generation
+      handleGenerateSynonyms();
+    } else if (msg.type === 'update-description') {
+      // Handle description update
+      handleUpdateDescription(msg.synonyms);
+    }
+  }
+  
   // Initial state
   sendSelectionToUI()
+
+  // Function to handle generate-synonyms message
+  async function handleGenerateSynonyms() {
+    try {
+      // Get API key from storage
+      const apiKey = await figma.clientStorage.getAsync(STORAGE_KEY)
+      
+      if (!apiKey) {
+        figma.ui.postMessage({ 
+          type: 'generate-error',
+          error: 'API key not found. Please set your OpenAI API key in the Settings tab.'
+        })
+        return
+      }
+      
+      // Show loading state
+      figma.notify("Generating synonyms...")
+      
+      // Get the current selection
+      const selection = figma.currentPage.selection
+      
+      // Find the best node to export
+      const nodeToExport = getBestNodeToExport(selection)
+      
+      if (!nodeToExport) {
+        figma.ui.postMessage({ 
+          type: 'generate-error',
+          error: 'No valid icon selected'
+        })
+        return
+      }
+      
+      // Export the node as base64
+      const imageBase64 = await exportNodeAsBase64(nodeToExport)
+      
+      // Get the node name and description
+      let name = nodeToExport.name
+      let description = ''
+      
+      if (nodeToExport.type === 'COMPONENT') {
+        description = nodeToExport.description || ''
+      } else if (nodeToExport.type === 'INSTANCE' && nodeToExport.mainComponent) {
+        description = nodeToExport.mainComponent.description || ''
+      }
+      
+      // Generate synonyms using the AI service
+      const result = await generateSynonyms({
+        name,
+        imageBase64,
+        existingDescription: description,
+        apiKey
+      })
+      
+      if (result.error) {
+        figma.ui.postMessage({ 
+          type: 'generate-error', 
+          error: result.error 
+        })
+        return
+      }
+      
+      console.log('Raw synonyms from AI:', result.synonyms)
+      
+      // Group synonyms by category
+      const groups = groupSynonymsByCategory(result.synonyms)
+      
+      console.log('Grouped synonyms:', groups)
+      
+      figma.ui.postMessage({ 
+        type: 'synonyms-generated', 
+        groups 
+      })
+      
+      figma.notify("Synonyms generated successfully!")
+    } catch (error: any) {
+      console.error('Error in generate-synonyms handler:', error)
+      figma.ui.postMessage({ 
+        type: 'generate-error',
+        error: error.message || 'Unknown error occurred'
+      })
+      figma.notify("Error generating synonyms")
+    }
+  }
+
+  // Function to handle update-description message
+  function handleUpdateDescription(synonyms: string[]) {
+    const selection = figma.currentPage.selection[0]
+    if (selection && (selection.type === "COMPONENT" || selection.type === "COMPONENT_SET")) {
+      try {
+        const existingDescription = selection.description || ''
+        
+        // Group synonyms by category using the helper function
+        const synonymsByCategory = {
+          usage: synonyms.filter(s => s.toLowerCase().startsWith('usage:'))
+            .map(s => s.replace(/^usage:\s*/i, '').trim()),
+          object: synonyms.filter(s => s.toLowerCase().startsWith('object:'))
+            .map(s => s.replace(/^object:\s*/i, '').trim()),
+          modificator: synonyms.filter(s => s.toLowerCase().startsWith('modificator:'))
+            .map(s => s.replace(/^modificator:\s*/i, '').trim()),
+          shapes: synonyms.filter(s => s.toLowerCase().startsWith('shapes:'))
+            .map(s => s.replace(/^shapes:\s*/i, '').trim())
+        }
+
+        // Build the new description lines
+        const newLines = []
+        if (synonymsByCategory.usage.length > 0) newLines.push(`Usage: ${synonymsByCategory.usage.join(', ')}`)
+        if (synonymsByCategory.object.length > 0) newLines.push(`Object: ${synonymsByCategory.object.join(', ')}`)
+        if (synonymsByCategory.modificator.length > 0) newLines.push(`Modificator: ${synonymsByCategory.modificator.join(', ')}`)
+        if (synonymsByCategory.shapes.length > 0) newLines.push(`Shapes: ${synonymsByCategory.shapes.join(', ')}`)
+        
+        // Add the new description to the component
+        selection.description = newLines.join('\n')
+        
+        // Notify the UI that the description was updated
+        figma.ui.postMessage({ 
+          type: 'description-updated',
+          description: selection.description,
+          hasDescription: Boolean(selection.description)
+        })
+        
+        figma.notify('Description updated successfully!')
+      } catch (error: any) {
+        console.error('Error updating description:', error)
+        figma.ui.postMessage({ 
+          type: 'generate-error', 
+          error: error.message || 'Failed to update description'
+        })
+      }
+    } else {
+      figma.ui.postMessage({ 
+        type: 'generate-error', 
+        error: 'No component selected'
+      })
+    }
+  }
 } 
