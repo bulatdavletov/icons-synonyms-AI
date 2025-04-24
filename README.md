@@ -3,12 +3,8 @@
 A Figma plugin that uses AI to generate relevant synonyms for icon components and automatically adds them to component descriptions, improving searchability and usability of icon libraries.
 
 ## Features
-- Generate contextually relevant synonyms for icons using AI
-- Enhance component searchability 
-- Improve icon library usability
-- Support for both single components and batch processing
-- Light/Dark theme support
-- Integrated settings page for API key management
+- Generate synonyms for icons using AI
+- Your own API key from OpenAI
 
 ## Development Setup
 
@@ -22,15 +18,6 @@ npm install @create-figma-plugin/ui preact # New UI framework
 ```
 4. Build and run the plugin in Figma
 
-## API Key Security
-
-We take the security of API keys very seriously:
-
-1. Each user needs to provide their own OpenAI API key through the Settings page
-2. API keys are stored securely using Figma's clientStorage API, which keeps them only on the user's device
-3. Keys are never transmitted to servers other than directly to OpenAI for API calls
-4. The plugin validates API key formats before saving
-
 ## Using the Plugin
 
 1. Install the plugin from Figma Plugin Store
@@ -40,43 +27,37 @@ We take the security of API keys very seriously:
 5. Select the synonyms you want to add to the component
 6. Click "Apply Selected" to add them to the component description
 
-## Project Structure
-```
-icons-synonyms-AI/
-├── code.ts              # Main plugin logic
-├── code.js             # Bundled JavaScript (from esbuild)
-├── ui.html             # Plugin interface
-├── manifest.json       # Plugin configuration
-├── src/
-│   ├── ai-service.ts   # AI API integration
-│   ├── icon-exporter.ts # Icon export functionality
-│   ├── types.ts        # TypeScript type definitions
-│   └── components/     # UI components
-│       ├── App.tsx     # Main application component
-│       ├── ComponentInfo.tsx # Component info display
-│       ├── Settings.tsx # API key settings page
-│       └── SynonymGroups.tsx # Synonym groups display
-├── scripts/
-│   └── prebuild.js     # Build scripts
-└── tsconfig.json       # TypeScript configuration
-```
+## How the Plugin Works
 
-## Development Workflow
+### Technical Workflow
+1. **Icon Analysis**: When you select an icon component, the plugin:
+   - Extracts the icon's visual data (SVG)
+   - Analyzes existing component name and description
+   - Prepares a context-rich prompt for the AI
 
-1. Open the directory in Visual Studio Code
-2. Start the TypeScript compiler in watch mode:
-```bash
-npm run watch
-```
-3. Make your changes
-4. Test in Figma by loading the plugin
+2. **AI Processing**:
+   - The plugin sends the prepared data to OpenAI's GPT-4o
+   - The AI analyzes the icon's visual characteristics and semantic meaning
+   - The model generates contextually relevant synonyms grouped by semantic categories
 
-## Build Process
-- TypeScript files are bundled using esbuild
-- Main entry point: `code.ts` → `code.js`
-- UI is defined in `ui.html`
-- Build command: `npm run build`
-- Watch mode: `npm run watch`
+3. **Synonym Application**:
+   - Generated synonyms are displayed in semantic groups
+   - Users can select which synonym groups to apply
+   - Selected synonyms are added to the component's description
+   - Existing description is preserved and enhanced, not replaced
+
+### Batch Processing Workflow
+For multiple icon selection (coming soon):
+1. Select multiple icon components in Figma
+2. The plugin creates separate cards for each selected icon
+3. Process each icon individually or in batch
+4. Apply changes to maintain consistent description patterns
+
+### Data Handling
+- All icon processing happens locally within the plugin
+- Only anonymized icon data is sent to OpenAI for analysis
+- No user designs are stored or shared
+- API keys are stored only on the user's device using Figma's clientStorage
 
 ## Current Status
 - ✅ Component selection detection
@@ -87,13 +68,6 @@ npm run watch
 - ✅ API key management in Settings page
 - ✅ User-specific API key storage with clientStorage
 - 🚧 Batch processing implementation
-
-## Contributing
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
-
-## License
-This project is licensed under the MIT License.
+  - 🚧 Create separate cards for several selected icons
+- 🚧 Add regenerate button to one icon card
+- 🚧 Check layers inside for modificators
