@@ -1,6 +1,6 @@
 // AI Service for handling AI integration (OpenAI or JetBrains)
 import { config } from './config';
-import { getIconSynonymsPrompt } from './prompt-templates';
+import { getIconSynonymsPrompt } from './prompts/Prompt';
 import { getJetBrainsApiEntryPoint } from './jetbrains-api-config';
 
 interface AIResponse {
@@ -69,6 +69,11 @@ function parseAIResponse(text: string): string[] {
  */
 async function generateSynonymsWithOpenAI(params: GenerateSynonymsParams): Promise<AIResponse> {
   try {
+    // Check if API key is available
+    if (!config.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not set. Please add it to your .env file.');
+    }
+    
     const prompt = getIconSynonymsPrompt(params.name, params.existingDescription);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -101,7 +106,8 @@ async function generateSynonymsWithOpenAI(params: GenerateSynonymsParams): Promi
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const errorData = await response.json().catch(() => null);
+      throw new Error(`OpenAI API error: ${response.statusText}${errorData ? ' - ' + JSON.stringify(errorData) : ''}`);
     }
 
     const data = await response.json();

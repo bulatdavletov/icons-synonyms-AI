@@ -1,5 +1,3 @@
-// Prompt template for AI service
-
 /**
  * Generate a prompt for icon synonym generation
  * @param iconName The name of the icon

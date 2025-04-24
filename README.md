@@ -8,6 +8,7 @@ A Figma plugin that uses AI to generate relevant synonyms for icon components an
 - Improve icon library usability
 - Support for both single components and batch processing
 - Light/Dark theme support
+- Multiple AI provider support (OpenAI and JetBrains)
 
 ## Development Setup
 
@@ -20,13 +21,27 @@ npm install --save-dev @figma/plugin-typings
 npm install @create-figma-plugin/ui preact # New UI framework
 ```
 4. Set up API keys:
-   - Copy `src/config.template.ts` to `src/config.ts`
-   - Copy `src/api-keys.template.ts` to `src/api-keys.ts`
-   - Add your API keys to both files:
-     - OpenAI API key (if using OpenAI)
-     - JetBrains API key (if using JetBrains API)
-   - Configure the API provider in `config.ts` by setting `API_PROVIDER` to either 'openai' or 'jetbrains'
-   - These files are gitignored to prevent API keys from being committed
+   - Create a `.env` file in the root directory
+   - Add your API keys in the format: 
+     ```
+     OPENAI_API_KEY=your-openai-api-key-here
+     JETBRAINS_API_KEY=your-jetbrains-api-key-here
+     ```
+   - Configure which API provider to use in `src/config.ts` by setting `API_PROVIDER` to either 'openai' or 'jetbrains'
+   - The prebuild script will automatically copy the keys to `src/config.ts` during build
+   - Both `.env` and `src/config.ts` are gitignored to prevent API keys from being committed
+
+## API Key Security
+
+We take the security of API keys very seriously:
+
+1. API keys are only stored in the `.env` file, which is git-ignored
+2. The prebuild script copies the API keys to `src/config.ts` (also git-ignored)
+3. A `check-secrets.js` script runs after builds to detect any API keys in build files
+4. The script masks API key values in log outputs
+5. Never commit build files or `.env` files to the repository
+
+If a build contains API keys, the build process will fail with an error message.
 
 ## Project Structure
 ```
@@ -35,9 +50,11 @@ icons-synonyms-AI/
 ├── code.js             # Bundled JavaScript (from esbuild)
 ├── ui.html             # Plugin interface
 ├── manifest.json       # Plugin configuration
+├── .env                # Environment variables (gitignored)
 ├── src/
 │   ├── ai-service.ts   # AI API integration (OpenAI and JetBrains)
-│   ├── api-keys.ts     # API keys (gitignored)
+│   ├── config.ts       # Configuration generated from .env (gitignored)
+│   ├── config.template.ts # Configuration template
 │   ├── jetbrains-api-config.ts # JetBrains API configuration
 │   ├── icon-exporter.ts # Icon export functionality
 │   ├── components/     # UI components
@@ -46,7 +63,9 @@ icons-synonyms-AI/
 ├── __mocks__/          # Mock files for testing
 ├── jest.config.js      # Jest configuration
 ├── jest.setup.js       # Jest setup file
-├── esbuild.config.js   # esbuild configuration
+├── scripts/
+│   ├── prebuild.js     # Script to copy API key from .env to config.ts
+│   └── check-secrets.js # Script to check for API keys in build files
 └── tsconfig.json       # TypeScript configuration
 ```
 
