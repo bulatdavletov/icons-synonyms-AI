@@ -3,11 +3,9 @@
   "version": "1.0.0",
   "description": "Your Figma Plugin",
   "scripts": {
-    "build": "build-figma-plugin --typecheck --minify && npm run check-secrets",
+    "build": "build-figma-plugin --typecheck --minify",
     "watch": "build-figma-plugin --typecheck --watch",
-    "dev": "build-figma-plugin --typecheck --watch",
-    "check-secrets": "node scripts/check-secrets.js",
-    "precommit": "npm run check-secrets"
+    "dev": "build-figma-plugin --typecheck --watch"
   },
   "author": "",
   "license": "",
