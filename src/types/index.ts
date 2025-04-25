@@ -24,7 +24,7 @@ export interface ComponentInfo {
 export interface Handler {
   'selection-change': (componentInfo: ComponentInfo) => void
   'generate-synonyms': () => void
-  'synonyms-generated': (data: { groups: SynonymGroup[] }) => void
+  'synonyms-generated': (data: { synonyms: string[] }) => void
   'generate-error': (data: { error: string }) => void
   'update-description': (data: { synonyms: string[] }) => void
 }

@@ -41,17 +41,11 @@
     .section {
       margin-top: 10px;
     }
-    .synonyms-group {
+    .synonyms-container {
       margin-top: 16px;
       border: 1px solid #e5e5e5;
       border-radius: 6px;
       padding: 12px;
-    }
-    .group-title {
-      font-weight: 500;
-      font-size: 14px;
-      margin-bottom: 8px;
-      color: #333;
     }
     .synonyms-list {
       display: flex;
@@ -170,28 +164,15 @@
         <p class="description">Click on synonyms to select/deselect them</p>
         <div class="selected-count" id="selectedCount">0 synonyms selected</div>
         
-        <!-- Object Group -->
-        <div class="synonyms-group">
-          <div class="group-title">Objects</div>
-          <div class="synonyms-list" id="objectsList"></div>
+        <!-- Synonyms List -->
+        <div class="synonyms-container">
+          <div class="synonyms-list" id="synonymsList"></div>
         </div>
         
-        <!-- Meaning Group -->
-        <div class="synonyms-group">
-          <div class="group-title">Meanings</div>
-          <div class="synonyms-list" id="meaningsList"></div>
-        </div>
-        
-        <!-- Shapes Group -->
-        <div class="synonyms-group">
-          <div class="group-title">Shapes</div>
-          <div class="synonyms-list" id="shapesList"></div>
-        </div>
-        
-        <!-- Other Group -->
-        <div class="synonyms-group">
-          <div class="group-title">Other</div>
-          <div class="synonyms-list" id="othersList"></div>
+        <!-- Preview Section -->
+        <div id="previewSection" style="display: none;">
+          <h4 class="title">Preview</h4>
+          <textarea id="previewContent" class="result-box" style="width: 100%; min-height: 100px; resize: vertical; font-family: inherit; font-size: inherit;"></textarea>
         </div>
         
         <div class="actions-container">
@@ -204,41 +185,23 @@
     </div>
   </div>
   <script>
-    const apiKeyInput = document.getElementById('apiKeyInput');
     const generateButton = document.getElementById('generateButton');
     const loadingSection = document.getElementById('loadingSection');
     const errorSection = document.getElementById('errorSection');
     const synonymsSection = document.getElementById('synonymsSection');
-    const objectsList = document.getElementById('objectsList');
-    const meaningsList = document.getElementById('meaningsList');
-    const shapesList = document.getElementById('shapesList');
-    const othersList = document.getElementById('othersList');
+    const synonymsList = document.getElementById('synonymsList');
     const copyButton = document.getElementById('copyButton');
     const selectAllButton = document.getElementById('selectAllButton');
     const applyButton = document.getElementById('applyButton');
     const selectedCount = document.getElementById('selectedCount');
+    const previewSection = document.getElementById('previewSection');
+    const previewContent = document.getElementById('previewContent');
     
     let currentNodeType = 'none';
     let generatedSynonyms = [];
     let selectedSynonyms = new Set();
     let currentDescription = '';
-
-    // Common objects that might appear in icons
-    const objectKeywords = ['folder', 'file', 'document', 'trash', 'bin', 'heart', 'star', 'mail', 'email', 
-                          'envelope', 'phone', 'clock', 'time', 'calendar', 'user', 'person', 'profile', 
-                          'gear', 'settings', 'cog', 'lock', 'key', 'shield', 'bell', 'notification', 
-                          'camera', 'image', 'photo', 'picture', 'home', 'house', 'building'];
-                          
-    // Common meanings/actions
-    const meaningKeywords = ['delete', 'remove', 'add', 'create', 'edit', 'modify', 'save', 'store', 
-                           'like', 'favorite', 'send', 'receive', 'call', 'contact', 'schedule', 
-                           'plan', 'configure', 'setup', 'secure', 'protect', 'alert', 'warn', 
-                           'capture', 'view', 'display', 'navigate', 'search', 'find'];
-                           
-    // Common shapes
-    const shapeKeywords = ['circle', 'square', 'rectangle', 'triangle', 'diamond', 'hexagon', 
-                         'oval', 'line', 'arrow', 'curve', 'dot', 'point', 'cross', 'x', 
-                         'plus', 'minus', 'check', 'checkmark', 'star', 'heart'];
+    let rawPreviewText = '';
 
     // Enable/disable generate button based on selection
     function updateButtonState() {
@@ -251,6 +214,7 @@
     // Update the selected count display
     function updateSelectedCount() {
       selectedCount.textContent = `${selectedSynonyms.size} synonyms selected`;
+      updatePreview();
     }
     
     // Send a message to the plugin that the UI is ready
@@ -262,25 +226,6 @@
         }
       }, '*');
     };
-
-    // Categorize a synonym into one of the groups
-    function categorize(synonym) {
-      const lowerSynonym = synonym.toLowerCase();
-      
-      if (objectKeywords.some(keyword => lowerSynonym.includes(keyword))) {
-        return 'object';
-      }
-      
-      if (meaningKeywords.some(keyword => lowerSynonym.includes(keyword))) {
-        return 'meaning';
-      }
-      
-      if (shapeKeywords.some(keyword => lowerSynonym.includes(keyword))) {
-        return 'shape';
-      }
-      
-      return 'other';
-    }
 
     // Create a synonym tag with selection functionality
     function createSynonymTag(synonym) {
@@ -352,71 +297,24 @@
           errorSection.textContent = msg.error;
           errorSection.style.display = 'block';
           synonymsSection.style.display = 'none';
-        } else if (msg.groups && msg.groups.length > 0) {
-          // Extract synonyms from groups
-          const allSynonyms = msg.groups.flatMap(group => group.synonyms);
-          
+        } else if (msg.synonyms && msg.synonyms.length > 0) {
           // Store the generated synonyms
-          generatedSynonyms = allSynonyms;
+          generatedSynonyms = msg.synonyms;
           
           // Clear previous synonyms and selected synonyms
-          objectsList.innerHTML = '';
-          meaningsList.innerHTML = '';
-          shapesList.innerHTML = '';
-          othersList.innerHTML = '';
+          synonymsList.innerHTML = '';
           selectedSynonyms.clear();
           updateSelectedCount();
           
-          // Categorize and add each synonym as a tag
-          allSynonyms.forEach(synonym => {
+          // Add each synonym as a tag
+          generatedSynonyms.forEach(synonym => {
             const tag = createSynonymTag(synonym);
-            
-            // Add to appropriate list based on category
-            const category = categorize(synonym);
-            switch(category) {
-              case 'object':
-                objectsList.appendChild(tag);
-                break;
-              case 'meaning':
-                meaningsList.appendChild(tag);
-                break;
-              case 'shape':
-                shapesList.appendChild(tag);
-                break;
-              default:
-                othersList.appendChild(tag);
-                break;
-            }
+            synonymsList.appendChild(tag);
           });
           
           // Show the synonyms section
           synonymsSection.style.display = 'block';
           errorSection.style.display = 'none';
-          
-          // Hide empty groups
-          if (objectsList.children.length === 0) {
-            objectsList.parentElement.style.display = 'none';
-          } else {
-            objectsList.parentElement.style.display = 'block';
-          }
-          
-          if (meaningsList.children.length === 0) {
-            meaningsList.parentElement.style.display = 'none';
-          } else {
-            meaningsList.parentElement.style.display = 'block';
-          }
-          
-          if (shapesList.children.length === 0) {
-            shapesList.parentElement.style.display = 'none';
-          } else {
-            shapesList.parentElement.style.display = 'block';
-          }
-          
-          if (othersList.children.length === 0) {
-            othersList.parentElement.style.display = 'none';
-          } else {
-            othersList.parentElement.style.display = 'block';
-          }
         } else {
           // No synonyms generated
           errorSection.textContent = 'No synonyms were generated. Try again with a different icon.';
@@ -514,47 +412,32 @@
     
     // Handle apply button click
     applyButton.onclick = () => {
-      if (selectedSynonyms.size === 0) {
+      if (selectedSynonyms.size === 0 && !rawPreviewText.trim()) {
         alert('Please select at least one synonym to apply');
         return;
       }
       
-      // Format the selected synonyms
-      const synonymsString = Array.from(selectedSynonyms).join(', ');
+      // Get synonyms from the preview textarea, use raw text to preserve user edits
+      const synonymsString = rawPreviewText || Array.from(selectedSynonyms).join(', ');
       
-      // Create the new description with the format "Synonyms: x, y, z, etc"
-      let newDescription = currentDescription;
-      
-      // Check if the description already has a Synonyms section
-      const synonymsRegex = /Synonyms:\s*([^]*?)(?=\n\n|$)/;
-      const match = currentDescription.match(synonymsRegex);
-      
-      if (match) {
-        // Replace existing synonyms section
-        newDescription = currentDescription.replace(
-          synonymsRegex,
-          `Synonyms: ${synonymsString}`
-        );
-      } else {
-        // Add new synonyms section
-        if (currentDescription && !currentDescription.endsWith('\n\n')) {
-          // Add double newline if needed
-          if (currentDescription.endsWith('\n')) {
-            newDescription += '\n';
-          } else {
-            newDescription += '\n\n';
-          }
-        }
-        newDescription += `Synonyms: ${synonymsString}`;
+      if (!synonymsString.trim()) {
+        alert('Preview content cannot be empty');
+        return;
       }
       
-      // Send message to update the description
+      // Parse the synonyms
+      const parsedSynonyms = synonymsString.split(',').map(s => s.trim()).filter(s => s);
+      
+      // Send message to update the description with the array of synonyms
       parent.postMessage({
         pluginMessage: {
           type: 'update-description',
-          description: newDescription
+          synonyms: parsedSynonyms
         }
       }, '*');
+      
+      // Reset the manually edited flag
+      previewContent.dataset.manuallyEdited = false;
     };
     
     // Handle copy button click
@@ -576,6 +459,46 @@
           console.error('Failed to copy: ', err);
         });
     };
+
+    // Functions to show or hide the preview section
+    function showPreview() {
+      if (selectedSynonyms.size > 0 || rawPreviewText.trim()) {
+        previewSection.style.display = 'block';
+      }
+    }
+    
+    function hidePreview() {
+      previewSection.style.display = 'none';
+      rawPreviewText = '';
+      previewContent.value = '';
+      previewContent.dataset.manuallyEdited = false;
+    }
+    
+    // Update the preview content
+    function updatePreview() {
+      if (selectedSynonyms.size > 0 || rawPreviewText.trim()) {
+        // Only update the preview content if it hasn't been manually edited
+        if (!previewContent.dataset.manuallyEdited) {
+          rawPreviewText = Array.from(selectedSynonyms).join(', ');
+          previewContent.value = rawPreviewText;
+        }
+        showPreview();
+      } else {
+        hidePreview();
+      }
+    }
+
+    // Add event listener for preview content changes
+    previewContent.addEventListener('input', () => {
+      // Mark the content as manually edited
+      previewContent.dataset.manuallyEdited = 'true';
+      rawPreviewText = previewContent.value;
+      
+      // If the preview is empty, hide the preview section
+      if (!rawPreviewText.trim() && selectedSynonyms.size === 0) {
+        hidePreview();
+      }
+    });
   </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 import { emit, on, showUI } from '@create-figma-plugin/utilities'
-import { exportNodeAsBase64, getBestNodeToExport } from './src/icon-exporter'
-import { generateSynonyms } from './src/ai-service'
+import { exportNodeAsBase64, getBestNodeToExport } from './src/utils/icon-exporter'
+import { generateSynonyms } from './src/services/ai-service'
 import { Handler } from './src/types'
 
 export default function () {
@@ -81,23 +81,16 @@ export default function () {
         apiKey: ''  // This will use the hardcoded API key in the service
       })
       
-      // Group synonyms by category
-      const groups = [
-        {
-          title: 'Objects',
-          synonyms: result.synonyms.filter(s => s.startsWith('object:'))
-        },
-        {
-          title: 'Actions',
-          synonyms: result.synonyms.filter(s => s.startsWith('action:'))
-        },
-        {
-          title: 'Visual',
-          synonyms: result.synonyms.filter(s => s.startsWith('visual:'))
+      // Extract all synonyms without grouping
+      const synonyms = result.synonyms.flatMap(s => {
+        const colonIndex = s.indexOf(':')
+        if (colonIndex > 0) {
+          return s.substring(colonIndex + 1).trim().split(',').map(item => item.trim())
         }
-      ]
+        return []
+      })
       
-      emit('synonyms-generated', { groups })
+      emit('synonyms-generated', { synonyms })
       
       figma.notify("Synonyms generated successfully!")
     } catch (error: any) {
@@ -111,15 +104,48 @@ export default function () {
 
   on('update-description', (data: { synonyms: string[] }) => {
     const selection = figma.currentPage.selection[0]
+    
     if (selection && (selection.type === "COMPONENT" || selection.type === "COMPONENT_SET")) {
       try {
-        selection.description = data.synonyms.join(', ')
+        // Join all synonyms without separating by groups
+        const newDescription = data.synonyms.join(', ')
+        
+        // Basic approach - directly set the description
+        if (selection.type === "COMPONENT") {
+          const component = selection as ComponentNode;
+          component.description = newDescription;
+        } else if (selection.type === "COMPONENT_SET") {
+          const componentSet = selection as ComponentSetNode;
+          componentSet.description = newDescription;
+        }
+        
+        // Try to force a UI update by modifying a non-visible property
+        selection.setRelaunchData({ description: newDescription });
+        
+        // Try to update the selection to force a refresh
+        const currentSelection = figma.currentPage.selection;
+        figma.currentPage.selection = [];
+        setTimeout(() => {
+          figma.currentPage.selection = currentSelection;
+        }, 100);
+        
+        // Notify UI about the updated description
+        emit('description-updated', {
+          description: newDescription,
+          hasDescription: true
+        })
+        
         figma.notify('Description updated successfully!')
       } catch (error: any) {
+        console.error('Error updating description:', error);
         emit('generate-error', {
           error: 'Failed to update description: ' + error.message
         })
       }
+    } else {
+      emit('generate-error', {
+        error: 'Cannot update description: Please select a component or component set'
+      })
     }
   })
 

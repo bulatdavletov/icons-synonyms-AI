@@ -36,16 +36,12 @@ export function getIconSynonymsPrompt(iconName: string, existingDescription?: st
        - Example: "Shapes: circle, arrow, triangle"
        - Format: "Shapes: shape1, shape2, shape3"
 
-    Example output:
-    Usage: project structure
-    Object: folder
-    Modificator: gear
-    Shapes: square, arrow
+    Example outputs:
+    project structure, folder with gear
+    sort by visibility, arrow down with lock
 
-    Context: These icons are used in JetBrains IDEs.
+    Context: These icons are used in JetBrains IDEs. There are 2 identical icons in dark and light themes.
     Don't use words like "icon", "symbol", "image", etc.
     Don't repeat the name of icon or existing description.
-    Return only these four categories with their values, one per line.
-    Leave empty lines for categories that don't apply (except required ones).
   `;
 } 

@@ -6,43 +6,33 @@ import { Handler } from './types/index'
 const STORAGE_KEY = 'openai-api-key'
 
 /**
- * Groups synonyms by category
+ * Processes synonyms into a flat list
  * @param synonyms Array of category-prefixed synonym strings
- * @returns Grouped synonyms by category
+ * @returns Flat list of unique synonyms
  */
-function groupSynonymsByCategory(synonyms: string[]) {
-  return [
-    {
-      title: 'Usage',
-      synonyms: synonyms
-        .filter(s => s.toLowerCase().startsWith('usage:'))
-        .map(s => s.replace(/^usage:\s*/i, '').trim())
-    },
-    {
-      title: 'Object',
-      synonyms: synonyms
-        .filter(s => s.toLowerCase().startsWith('object:'))
-        .map(s => s.replace(/^object:\s*/i, '').trim())
-        .flatMap(s => s.split(',').map(term => term.trim()))
-        .filter(s => s.length > 0)
-    },
-    {
-      title: 'Modificator',
-      synonyms: synonyms
-        .filter(s => s.toLowerCase().startsWith('modificator:'))
-        .map(s => s.replace(/^modificator:\s*/i, '').trim())
-        .flatMap(s => s.split(',').map(term => term.trim()))
-        .filter(s => s.length > 0)
-    },
-    {
-      title: 'Shapes',
-      synonyms: synonyms
-        .filter(s => s.toLowerCase().startsWith('shapes:'))
-        .map(s => s.replace(/^shapes:\s*/i, '').trim())
-        .flatMap(s => s.split(',').map(term => term.trim()))
-        .filter(s => s.length > 0)
+function processSynonyms(synonyms: string[]): string[] {
+  const processedSynonyms: string[] = [];
+  
+  // Process each line
+  for (const line of synonyms) {
+    const colonIndex = line.indexOf(':');
+    if (colonIndex > 0) {
+      // Get the content after the colon
+      const content = line.substring(colonIndex + 1).trim();
+      
+      // Split by commas if present and add each term
+      if (content.includes(',')) {
+        const terms = content.split(',').map(term => term.trim()).filter(term => term.length > 0);
+        processedSynonyms.push(...terms);
+      } else if (content.length > 0) {
+        // Add the whole content if no commas and not empty
+        processedSynonyms.push(content);
+      }
     }
-  ].filter(group => group.synonyms.length > 0) // Only include groups with synonyms
+  }
+  
+  // Remove duplicates and return
+  return Array.from(new Set(processedSynonyms));
 }
 
 export default function () {
@@ -175,12 +165,12 @@ export default function () {
       
       console.log('Raw synonyms from AI:', result.synonyms)
       
-      // Group synonyms by category
-      const groups = groupSynonymsByCategory(result.synonyms)
+      // Process synonyms into a flat list
+      const synonymsList = processSynonyms(result.synonyms)
       
-      console.log('Grouped synonyms:', groups)
+      console.log('Processed synonyms:', synonymsList)
       
-      emit('synonyms-generated', { groups })
+      emit('synonyms-generated', { synonyms: synonymsList })
       
       figma.notify("Synonyms generated successfully!")
     } catch (error: any) {
@@ -192,53 +182,71 @@ export default function () {
     }
   })
 
-  on('update-description', (data: { synonyms: string[] }) => {
-    const selection = figma.currentPage.selection[0]
-    if (selection && (selection.type === "COMPONENT" || selection.type === "COMPONENT_SET")) {
-      try {
-        const existingDescription = selection.description || ''
-        
-        // Group synonyms by category using the helper function
-        const synonymsByCategory = {
-          usage: data.synonyms.filter(s => s.toLowerCase().startsWith('usage:'))
-            .map(s => s.replace(/^usage:\s*/i, '').trim()),
-          object: data.synonyms.filter(s => s.toLowerCase().startsWith('object:'))
-            .map(s => s.replace(/^object:\s*/i, '').trim()),
-          modificator: data.synonyms.filter(s => s.toLowerCase().startsWith('modificator:'))
-            .map(s => s.replace(/^modificator:\s*/i, '').trim()),
-          shapes: data.synonyms.filter(s => s.toLowerCase().startsWith('shapes:'))
-            .map(s => s.replace(/^shapes:\s*/i, '').trim())
-        }
-
-        // Build the new description lines
-        const newLines = []
-        if (synonymsByCategory.usage.length > 0) newLines.push(`Usage: ${synonymsByCategory.usage.join(', ')}`)
-        if (synonymsByCategory.object.length > 0) newLines.push(`Object: ${synonymsByCategory.object.join(', ')}`)
-        if (synonymsByCategory.modificator.length > 0) newLines.push(`Modificator: ${synonymsByCategory.modificator.join(', ')}`)
-        if (synonymsByCategory.shapes.length > 0) newLines.push(`Shapes: ${synonymsByCategory.shapes.join(', ')}`)
-        
-        // Add the new description to the component
-        selection.description = newLines.join('\n')
-        
-        // Notify the UI that the description was updated
-        emit('description-updated', {
-          description: selection.description,
-          hasDescription: Boolean(selection.description)
-        })
-        
-        figma.notify('Description updated successfully!')
-      } catch (error: any) {
-        console.error('Error updating description:', error)
-        emit('generate-error', { 
-          error: error.message || 'Failed to update description'
-        })
-      }
-    } else {
-      emit('generate-error', { 
-        error: 'No component selected'
-      })
+  // Add this function somewhere in the main.ts file
+  function updateComponentDescription(newDescription: string): boolean {
+    console.log('Direct function call to update component description:', newDescription);
+    
+    const selection = figma.currentPage.selection[0];
+    if (!selection) {
+      console.error('No selection found');
+      return false;
     }
-  })
+    
+    console.log('Selected node:', {
+      id: selection.id,
+      name: selection.name,
+      type: selection.type
+    });
+    
+    if (selection.type !== 'COMPONENT' && selection.type !== 'COMPONENT_SET') {
+      console.error('Selected node is not a component or component set');
+      return false;
+    }
+    
+    try {
+      // Type assertion to access description property
+      if (selection.type === 'COMPONENT') {
+        (selection as ComponentNode).description = newDescription;
+      } else {
+        (selection as ComponentSetNode).description = newDescription;
+      }
+      
+      console.log('Description set successfully');
+      
+      // Force a UI update
+      const currentSelection = figma.currentPage.selection;
+      figma.currentPage.selection = [];
+      figma.currentPage.selection = currentSelection;
+      
+      return true;
+    } catch (error) {
+      console.error('Error setting description:', error);
+      return false;
+    }
+  }
+
+  // Then update the 'update-description' handler:
+  on('update-description', (data: { synonyms: string[] }) => {
+    console.log('Received update-description event');
+    
+    // Join synonyms and update description
+    const newDescription = data.synonyms.join(', ');
+    const success = updateComponentDescription(newDescription);
+    
+    if (success) {
+      // Notify UI about the update
+      emit('description-updated', {
+        description: newDescription,
+        hasDescription: true
+      });
+      figma.notify('Description updated successfully!');
+    } else {
+      emit('generate-error', {
+        error: 'Failed to update component description'
+      });
+      figma.notify('Failed to update description');
+    }
+  });
 
   // Initialize
   figma.on('selectionchange', sendSelectionToUI)
