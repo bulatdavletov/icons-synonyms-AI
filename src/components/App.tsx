@@ -160,9 +160,7 @@ export function App() {
             {synonyms.length > 0 && (
               <Fragment>
                 <VerticalSpace space="small" />
-                <Text><strong>Generated Synonyms</strong></Text>
-                <VerticalSpace space="small" />
-                <Text>Click on synonyms to select/deselect them</Text>
+                <Text><strong>Select Synonyms</strong></Text>
                 <VerticalSpace space="medium" />
                 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -188,7 +186,7 @@ export function App() {
                   <Fragment>
                     <VerticalSpace space="medium" />
                     <Text><strong>Preview:</strong></Text>
-                    <Text>These synonyms will be added to the existing description</Text>
+                    <VerticalSpace space="small" />
                     <Textbox
                       onValueInput={value => setPreviewText(value)}
                       value={previewText}

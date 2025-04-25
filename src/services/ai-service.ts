@@ -19,7 +19,6 @@ interface GenerateSynonymsParams {
  * @returns Array of formatted category lines
  */
 function parseAIResponse(text: string): string[] {
-  console.log('Raw AI response:', text);
   
   // Clean up the response - remove any whitespace, newlines, etc.
   const cleanedText = text.trim();
@@ -31,12 +30,8 @@ function parseAIResponse(text: string): string[] {
     .map(item => item.trim())
     .filter(item => item.length > 0);
   
-  console.log('Parsed items:', items);
-  
   // Format each item with a category
   const result = items.map(item => `Item: ${item}`);
-  
-  console.log('Formatted response:', result);
   return result;
 }
 

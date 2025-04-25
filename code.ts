@@ -126,8 +126,6 @@ export default function () {
             currentDescription = (selection as ComponentSetNode).description || ""
           }
           
-          console.log('Current description:', currentDescription)
-          
           // Create new description by preserving existing and appending synonyms
           let newText = ""
           if (currentDescription.trim() === "") {
@@ -137,8 +135,6 @@ export default function () {
             // If there's an existing description, append an empty line and then the synonyms
             newText = `${currentDescription}\n\n${synonymsText}`
           }
-          
-          console.log('New combined text:', newText)
           
           try {
             // APPROACH 1: Try the traditional approach first
@@ -173,8 +169,6 @@ export default function () {
               } else {
                 updatedDescription = (selection as ComponentSetNode).description
               }
-              
-              console.log('Updated description:', updatedDescription)
               
               // Check if we need a fallback
               if (updatedDescription !== newText) {

@@ -14,35 +14,29 @@ const USER_PROMPT_KEY = 'icon-synonyms-user-prompt'
  * @returns Flat list of unique synonyms
  */
 function processSynonyms(synonyms: string[]): string[] {
-  console.log('Processing synonyms input:', synonyms);
   
   const processedSynonyms: string[] = [];
   
   // Process each line
   for (const line of synonyms) {
-    console.log('Processing line:', line);
     
     const colonIndex = line.indexOf(':');
     if (colonIndex > 0) {
       // Get the content after the colon (for our formatted items)
       const content = line.substring(colonIndex + 1).trim();
-      console.log('Content after colon:', content);
       
       if (content.length > 0) {
         // Add the content directly - it should already be a single term
-        console.log('Adding term:', content);
         processedSynonyms.push(content);
       }
     } else if (line.length > 0) {
       // For any plain text without categories
-      console.log('Adding line without colon:', line);
       processedSynonyms.push(line.trim());
     }
   }
   
   // Remove duplicates and return
   const uniqueSynonyms = Array.from(new Set(processedSynonyms));
-  console.log('Final processed synonyms:', uniqueSynonyms);
   return uniqueSynonyms;
 }
 
@@ -194,8 +188,7 @@ export default function () {
         return
       }
       
-      // Show loading state
-      figma.notify("Generating synonyms...")
+      // No longer showing notification here
       
       // Get the current selection
       const selection = figma.currentPage.selection
@@ -236,40 +229,30 @@ export default function () {
         return
       }
       
-      console.log('Raw synonyms from AI:', result.synonyms)
-      
       // Process synonyms into a flat list
       const synonymsList = processSynonyms(result.synonyms)
       
-      console.log('Processed synonyms:', synonymsList)
-      
       emit('synonyms-generated', { synonyms: synonymsList })
       
-      figma.notify("Synonyms generated successfully!")
+      // Removed notification here - no longer showing Figma notification
     } catch (error: any) {
       console.error('Error in generate-synonyms handler:', error)
       emit('generate-error', {
         error: error.message || 'Unknown error occurred'
       })
+      // Still show error notification for better user experience
       figma.notify("Error generating synonyms")
     }
   })
 
   // Add this function somewhere in the main.ts file
   function updateComponentDescription(newSynonyms: string): boolean {
-    console.log('Direct function call to update component description with synonyms:', newSynonyms);
     
     const selection = figma.currentPage.selection[0];
     if (!selection) {
       console.error('No selection found');
       return false;
     }
-    
-    console.log('Selected node:', {
-      id: selection.id,
-      name: selection.name,
-      type: selection.type
-    });
     
     if (selection.type !== 'COMPONENT' && selection.type !== 'COMPONENT_SET') {
       console.error('Selected node is not a component or component set');
@@ -285,8 +268,6 @@ export default function () {
         existingDescription = (selection as ComponentSetNode).description || "";
       }
       
-      console.log('Existing description:', existingDescription);
-      
       // Create the new description by preserving existing and appending new synonyms
       let fullDescription = "";
       if (existingDescription.trim() === "") {
@@ -297,16 +278,12 @@ export default function () {
         fullDescription = `${existingDescription}\n\n${newSynonyms}`;
       }
       
-      console.log('Final description:', fullDescription);
-      
       // Type assertion to access description property
       if (selection.type === 'COMPONENT') {
         (selection as ComponentNode).description = fullDescription;
       } else {
         (selection as ComponentSetNode).description = fullDescription;
       }
-      
-      console.log('Description set successfully');
       
       // Force a UI update
       const currentSelection = figma.currentPage.selection;
@@ -322,7 +299,6 @@ export default function () {
 
   // Then update the 'update-description' handler:
   on('update-description', (data: { synonyms: string[] }) => {
-    console.log('Received update-description event');
     
     // Join synonyms
     const synonymsText = data.synonyms.join(', ');
@@ -346,12 +322,10 @@ export default function () {
         description: finalDescription,
         hasDescription: true
       });
-      figma.notify('Description updated successfully!');
     } else {
       emit('generate-error', {
         error: 'Failed to update component description'
       });
-      figma.notify('Failed to update description');
     }
   });
 

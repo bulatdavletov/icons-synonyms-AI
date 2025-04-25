@@ -8,12 +8,13 @@ Format your response as a simple comma-separated list in lowercase without bulle
 export const DEFAULT_USER_PROMPT = `Look at the icon and generate a list of relevant keywords, separated by commas. Include:
 
 - Split camelCase names (e.g., "projectStructure" → "project structure")
-- Description of what the icon shows (e.g., "folder with gear")
+- Description of what the icon shows (e.g., "folder with blue gear")
 - What the icon is typically used for (e.g., "settings", "delete", "add")
-- All separate objects visible in the icon (e.g., "folder, gear, lock")
+- All separate objects visible in the icon (e.g., "folder, gear, lock, arrow down")
 - Basic shapes present (e.g., "circle", "square", "rectangle")
-- Direction of arrows if present (e.g., "arrow down", "arrow left")
 
+Always describe color, if it's not gray (e.g. "folder with blue gear")
+Always describe direction of arrows (e.g., "arrow down", "arrow left")
 Don't use words like "icon", "symbol", "image".
 Don't repeat the name or existing description.`;
 
