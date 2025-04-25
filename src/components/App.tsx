@@ -69,10 +69,26 @@ export function App() {
         ? prev.filter(s => s !== synonym)
         : [...prev, synonym]
       
-      // Update preview text when synonyms change
-      setPreviewText(newSynonyms.join(', '))
-      return newSynonyms
-    })
+      // Update preview text when synonyms change - preserve existing edits
+      if (previewText.trim()) {
+        // If there's already text in the preview, add the new selection
+        // Check if we're adding or removing
+        if (prev.includes(synonym)) {
+          // Removing - no need to update preview text as user may have edited it
+          return newSynonyms;
+        } else {
+          // Adding - append to existing text with proper comma
+          const lastChar = previewText.trim().slice(-1);
+          const separator = (lastChar === ',' || lastChar === '') ? ' ' : ', ';
+          setPreviewText(previewText.trim() + separator + synonym);
+        }
+      } else {
+        // If no text, just use the comma-separated list
+        setPreviewText(newSynonyms.join(', '));
+      }
+      
+      return newSynonyms;
+    });
   }
 
   const handleApplySelected = () => {
@@ -121,76 +137,92 @@ export function App() {
 
       {activeTab === 'main' ? (
         <Fragment>
-          {componentInfo && (
-            <ComponentInfo
-              name={componentInfo.name}
-              type={componentInfo.type}
-              description={componentInfo.description}
-              hasDescription={componentInfo.hasDescription}
-            />
-          )}
+          {/* Content container with padding at the bottom to make room for fixed button */}
+          <div style={{ paddingBottom: '60px' }}>
+            {componentInfo && (
+              <ComponentInfo
+                name={componentInfo.name}
+                type={componentInfo.type}
+                description={componentInfo.description}
+                hasDescription={componentInfo.hasDescription}
+              />
+            )}
 
-          <VerticalSpace space="large" />
+            <VerticalSpace space="small" />
 
-          <Button fullWidth onClick={handleGenerateSynonyms} disabled={loading || !componentInfo}>
-            {loading ? 'Generating...' : 'Generate Synonyms'}
-          </Button>
+            {error && (
+              <Fragment>
+                <VerticalSpace space="medium" />
+                <Text style={{ color: 'var(--figma-color-text-danger)' }}>{error}</Text>
+              </Fragment>
+            )}
 
-          {error && (
-            <Fragment>
-              <VerticalSpace space="medium" />
-              <Text style={{ color: 'var(--figma-color-text-danger)' }}>{error}</Text>
-            </Fragment>
-          )}
+            {synonyms.length > 0 && (
+              <Fragment>
+                <VerticalSpace space="small" />
+                <Text><strong>Generated Synonyms</strong></Text>
+                <VerticalSpace space="small" />
+                <Text>Click on synonyms to select/deselect them</Text>
+                <VerticalSpace space="medium" />
+                
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {synonyms.map((synonym, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: selectedSynonyms.includes(synonym)
+                          ? 'var(--figma-color-bg-selected)'
+                          : 'var(--figma-color-bg-secondary)',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSynonymClick(synonym)}
+                    >
+                      <Text>{synonym}</Text>
+                    </div>
+                  ))}
+                </div>
 
-          {synonyms.length > 0 && (
-            <Fragment>
-              <VerticalSpace space="large" />
-              <Text><strong>Generated Synonyms</strong></Text>
-              <VerticalSpace space="small" />
-              <Text>Click on synonyms to select/deselect them</Text>
-              <VerticalSpace space="medium" />
-              
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {synonyms.map((synonym, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      backgroundColor: selectedSynonyms.includes(synonym)
-                        ? 'var(--figma-color-bg-selected)'
-                        : 'var(--figma-color-bg-secondary)',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => handleSynonymClick(synonym)}
-                  >
-                    <Text>{synonym}</Text>
-                  </div>
-                ))}
-              </div>
+                {(selectedSynonyms.length > 0 || previewText.trim()) && (
+                  <Fragment>
+                    <VerticalSpace space="medium" />
+                    <Text><strong>Preview:</strong></Text>
+                    <Text>These synonyms will be added to the existing description</Text>
+                    <Textbox
+                      onValueInput={value => setPreviewText(value)}
+                      value={previewText}
+                      placeholder="Selected synonyms will appear here"
+                    />
+                    <VerticalSpace space="medium" />
+                    <Button 
+                      fullWidth 
+                      onClick={handleApplySelected}
+                      disabled={!previewText.trim() && selectedSynonyms.length === 0}
+                    >
+                      Add to Description
+                    </Button>
+                  </Fragment>
+                )}
+              </Fragment>
+            )}
+          </div>
 
-              {(selectedSynonyms.length > 0 || previewText.trim()) && (
-                <Fragment>
-                  <VerticalSpace space="medium" />
-                  <Text><strong>Preview:</strong></Text>
-                  <Textbox
-                    onValueInput={value => setPreviewText(value)}
-                    value={previewText}
-                    placeholder="Selected synonyms will appear here"
-                  />
-                  <VerticalSpace space="medium" />
-                  <Button 
-                    fullWidth 
-                    onClick={handleApplySelected}
-                    disabled={!previewText.trim() && selectedSynonyms.length === 0}
-                  >
-                    Apply to Description
-                  </Button>
-                </Fragment>
-              )}
-            </Fragment>
-          )}
+          {/* Fixed button at the bottom */}
+          <div style={{ 
+            position: 'fixed', 
+            bottom: 0, 
+            left: 0, 
+            width: '100%', 
+            padding: '16px 16px',
+            backgroundColor: 'var(--figma-color-bg)',
+            boxShadow: '0 -1px 2px rgba(0, 0, 0, 0.1)',
+            zIndex: 100
+          }}>
+            <Button fullWidth onClick={handleGenerateSynonyms} disabled={loading || !componentInfo}>
+              {loading ? 'Generating...' : 'Generate Synonyms'}
+            </Button>
+          </div>
         </Fragment>
       ) : (
         <Settings />

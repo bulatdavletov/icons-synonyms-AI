@@ -21,14 +21,6 @@ export function ComponentInfo({
           <strong>{name}</strong>
         </Text>
         
-        {type && (
-          <Text>
-            <small>{type}</small>
-          </Text>
-        )}
-        
-        <VerticalSpace space="small" />
-        
         <Text>
           {hasDescription ? description : (
             <em>No description</em>

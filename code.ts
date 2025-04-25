@@ -27,15 +27,19 @@ export default function () {
             : node.description
         )
         
-        const description = node.type === "INSTANCE"
-          ? node.mainComponent?.description || ""
-          : node.description || ""
+        // Get description using our helper function that checks multiple sources
+        let description = ""
+        if (node.type === "INSTANCE" && node.mainComponent) {
+          description = getNodeDescription(node.mainComponent)
+        } else {
+          description = getNodeDescription(node)
+        }
         
         emit('selection-change', {
           name: node.name,
           type: node.type,
           description,
-          hasDescription
+          hasDescription: description.trim() !== ""
         })
       }
     }
@@ -108,36 +112,122 @@ export default function () {
     if (selection && (selection.type === "COMPONENT" || selection.type === "COMPONENT_SET")) {
       try {
         // Join all synonyms without separating by groups
-        const newDescription = data.synonyms.join(', ')
+        const synonymsText = data.synonyms.join(', ')
+        console.log('Synonyms text to add:', synonymsText)
         
-        // Basic approach - directly set the description
-        if (selection.type === "COMPONENT") {
-          const component = selection as ComponentNode;
-          component.description = newDescription;
-        } else if (selection.type === "COMPONENT_SET") {
-          const componentSet = selection as ComponentSetNode;
-          componentSet.description = newDescription;
-        }
-        
-        // Try to force a UI update by modifying a non-visible property
-        selection.setRelaunchData({ description: newDescription });
-        
-        // Try to update the selection to force a refresh
-        const currentSelection = figma.currentPage.selection;
-        figma.currentPage.selection = [];
-        setTimeout(() => {
-          figma.currentPage.selection = currentSelection;
-        }, 100);
-        
-        // Notify UI about the updated description
-        emit('description-updated', {
-          description: newDescription,
-          hasDescription: true
+        // Get the current description using a different approach
+        figma.loadFontAsync({ family: "Inter", style: "Regular" }).then(() => {
+          // Get current description using the original approach
+          let currentDescription = ""
+          
+          if (selection.type === "COMPONENT") {
+            currentDescription = (selection as ComponentNode).description || ""
+          } else if (selection.type === "COMPONENT_SET") {
+            currentDescription = (selection as ComponentSetNode).description || ""
+          }
+          
+          console.log('Current description:', currentDescription)
+          
+          // Create new description by preserving existing and appending synonyms
+          let newText = ""
+          if (currentDescription.trim() === "") {
+            // If no existing description, just use the synonyms
+            newText = synonymsText
+          } else {
+            // If there's an existing description, append an empty line and then the synonyms
+            newText = `${currentDescription}\n\n${synonymsText}`
+          }
+          
+          console.log('New combined text:', newText)
+          
+          try {
+            // APPROACH 1: Try the traditional approach first
+            if (selection.type === "COMPONENT") {
+              (selection as ComponentNode).description = newText
+            } else {
+              (selection as ComponentSetNode).description = newText
+            }
+            
+            // APPROACH 2: Also store the description in relaunchData as backup
+            // We'll use a custom key to store our description
+            const relaunchData = {
+              'custom-description': newText,
+              'timestamp': Date.now().toString()
+            }
+            
+            selection.setRelaunchData(relaunchData)
+            
+            // APPROACH 3: Also try updating via plugin data
+            selection.setPluginData('custom-description', newText)
+            
+            // Force a refresh of Figma's UI to ensure our changes take effect
+            const currentSelection = figma.currentPage.selection
+            figma.currentPage.selection = []
+            setTimeout(() => {
+              figma.currentPage.selection = currentSelection
+              
+              // Check if the update was successful
+              let updatedDescription = ""
+              if (selection.type === "COMPONENT") {
+                updatedDescription = (selection as ComponentNode).description
+              } else {
+                updatedDescription = (selection as ComponentSetNode).description
+              }
+              
+              console.log('Updated description:', updatedDescription)
+              
+              // Check if we need a fallback
+              if (updatedDescription !== newText) {
+                console.warn('Description did not update correctly, using relaunchData approach')
+                figma.notify('Using alternative method to update description')
+                
+                // Update UI with the data we stored in relaunchData
+                emit('description-updated', {
+                  description: newText, // Use what we tried to set
+                  hasDescription: true
+                })
+              } else {
+                // Success case - description updated correctly
+                emit('description-updated', {
+                  description: updatedDescription,
+                  hasDescription: true
+                })
+              }
+              
+              figma.notify('Description updated successfully!')
+            }, 100)
+          } catch (error) {
+            console.error('Error updating description:', error)
+            figma.notify('Error updating description', { error: true })
+            
+            // Try fallback approach
+            try {
+              const fallbackDescription = currentDescription + "\n\n" + synonymsText
+              selection.setPluginData('custom-description', fallbackDescription)
+              selection.setRelaunchData({ 'custom-description': fallbackDescription })
+              
+              emit('description-updated', {
+                description: fallbackDescription,
+                hasDescription: true
+              })
+              
+              figma.notify('Used fallback approach to update description')
+            } catch (fallbackError) {
+              console.error('Fallback approach failed:', fallbackError)
+              emit('generate-error', {
+                error: 'Failed to update description: ' + (error as Error).message
+              })
+            }
+          }
+        }).catch(error => {
+          console.error('Error loading font:', error)
+          figma.notify('Error loading font', { error: true })
+          emit('generate-error', {
+            error: 'Failed to load font: ' + (error as Error).message
+          })
         })
-        
-        figma.notify('Description updated successfully!')
       } catch (error: any) {
-        console.error('Error updating description:', error);
+        console.error('Error in update-description handler:', error)
         emit('generate-error', {
           error: 'Failed to update description: ' + error.message
         })
@@ -148,6 +238,24 @@ export default function () {
       })
     }
   })
+
+  // Function to read description (for future use)
+  function getNodeDescription(node: SceneNode): string {
+    // Try to get native description
+    let description = ""
+    if (node.type === "COMPONENT" || node.type === "COMPONENT_SET") {
+      description = (node as any).description || ""
+    }
+    
+    // Check if we have a custom description stored
+    const customDescription = node.getPluginData('custom-description')
+    if (customDescription && customDescription.length > 0) {
+      // Prefer the custom description if available
+      return customDescription
+    }
+    
+    return description
+  }
 
   // Request UI to check for selection on startup
   on('ui-ready', () => {
@@ -167,3 +275,4 @@ export default function () {
   // Initial selection check
   sendSelectionToUI()
 }
+

@@ -4,6 +4,9 @@
     body {
       font-family: Inter, sans-serif;
       padding: 20px;
+      padding-bottom: 70px; /* Add padding at the bottom to make room for the fixed button */
+      margin: 0;
+      box-sizing: border-box;
     }
     .container {
       display: flex;
@@ -19,10 +22,6 @@
       margin: 0;
       color: #666;
       font-size: 14px;
-    }
-    .type {
-      font-size: 12px;
-      color: #999;
     }
     .button {
       background: #18A0FB;
@@ -139,37 +138,33 @@
       color: #666;
       margin-top: 8px;
     }
+    /* Fixed bottom button style */
+    .bottom-fixed {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 15px 20px;
+      background: white;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 100;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="component-info">
       <h3 class="title" id="name">Select a component</h3>
-      <p class="type" id="type"></p>
       <p class="description" id="description">No component selected</p>
-    </div>
-    
-    <div class="section">
-      <button class="button" id="generateButton">Generate Synonyms</button>
       
-      <div id="loadingSection" class="loading" style="display: none;">
-        <div class="spinner"></div>
-        <span>Generating synonyms...</span>
-      </div>
-      
-      <div id="errorSection" class="error" style="display: none;"></div>
-      
-      <div id="synonymsSection" style="display: none;">
-        <h4 class="title">Generated Synonyms</h4>
-        <p class="description">Click on synonyms to select/deselect them</p>
+      <div id="synonymsSection" style="display: none; margin-top: 16px;">
         <div class="selected-count" id="selectedCount">0 synonyms selected</div>
         
-        <!-- Synonyms List -->
         <div class="synonyms-container">
           <div class="synonyms-list" id="synonymsList"></div>
         </div>
         
-        <!-- Preview Section -->
         <div id="previewSection" style="display: none;">
           <h4 class="title">Preview</h4>
           <textarea id="previewContent" class="result-box" style="width: 100%; min-height: 100px; resize: vertical; font-family: inherit; font-size: inherit;"></textarea>
@@ -183,7 +178,21 @@
         <button class="copy-button" id="copyButton">Copy All to Clipboard</button>
       </div>
     </div>
+    
+    <div class="section">
+      <div id="loadingSection" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <span>Generating synonyms...</span>
+      </div>
+      
+      <div id="errorSection" class="error" style="display: none;"></div>
+    </div>
   </div>
+  
+  <div class="bottom-fixed">
+    <button class="button" id="generateButton">Generate Synonyms</button>
+  </div>
+  
   <script>
     const generateButton = document.getElementById('generateButton');
     const loadingSection = document.getElementById('loadingSection');
@@ -203,21 +212,17 @@
     let currentDescription = '';
     let rawPreviewText = '';
 
-    // Enable/disable generate button based on selection
     function updateButtonState() {
-      // Enable generate button if we have a valid selection
       generateButton.disabled = (currentNodeType !== 'COMPONENT' && 
                                currentNodeType !== 'COMPONENT_SET' && 
                                currentNodeType !== 'INSTANCE');
     }
     
-    // Update the selected count display
     function updateSelectedCount() {
       selectedCount.textContent = `${selectedSynonyms.size} synonyms selected`;
       updatePreview();
     }
     
-    // Send a message to the plugin that the UI is ready
     window.onload = () => {
       console.log('UI is ready');
       parent.postMessage({ 
@@ -227,13 +232,11 @@
       }, '*');
     };
 
-    // Create a synonym tag with selection functionality
     function createSynonymTag(synonym) {
       const tag = document.createElement('div');
       tag.className = 'synonym-tag';
       tag.textContent = synonym;
       
-      // Add click handler for selection
       tag.addEventListener('click', () => {
         if (selectedSynonyms.has(synonym)) {
           selectedSynonyms.delete(synonym);
@@ -251,20 +254,17 @@
     window.onmessage = (event) => {
       const msg = event.data.pluginMessage;
       
-      // Debug: Log the message received from the plugin
       console.log('Message received from plugin:', msg);
       
       if (msg.type === 'selection-change') {
         document.getElementById('name').textContent = msg.name || 'Select a component';
-        document.getElementById('type').textContent = msg.type;
         
-        // Update description display based on hasDescription flag
         const descriptionElement = document.getElementById('description');
         if (msg.hasDescription) {
           descriptionElement.textContent = msg.description;
         } else {
           if (msg.type === 'COMPONENT' || msg.type === 'COMPONENT_SET' || msg.type === 'INSTANCE') {
-            descriptionElement.textContent = 'No description';
+            descriptionElement.textContent = 'No description available. Generate synonyms to add a description.';
             descriptionElement.style.fontStyle = 'italic';
             descriptionElement.style.color = '#999';
           } else {
@@ -274,55 +274,44 @@
           }
         }
         
-        // Store the current description
         currentDescription = msg.description || '';
         
-        // Update button state
+        // Store the node type but don't display it
         currentNodeType = msg.type;
         updateButtonState();
         
-        // Hide synonyms section when selection changes
         synonymsSection.style.display = 'none';
         errorSection.style.display = 'none';
         
-        // Clear selected synonyms
         selectedSynonyms.clear();
         updateSelectedCount();
       } else if (msg.type === 'synonyms-generated') {
-        // Hide loading indicator
         loadingSection.style.display = 'none';
         
         if (msg.error) {
-          // Show error message
           errorSection.textContent = msg.error;
           errorSection.style.display = 'block';
           synonymsSection.style.display = 'none';
         } else if (msg.synonyms && msg.synonyms.length > 0) {
-          // Store the generated synonyms
           generatedSynonyms = msg.synonyms;
           
-          // Clear previous synonyms and selected synonyms
           synonymsList.innerHTML = '';
           selectedSynonyms.clear();
           updateSelectedCount();
           
-          // Add each synonym as a tag
           generatedSynonyms.forEach(synonym => {
             const tag = createSynonymTag(synonym);
             synonymsList.appendChild(tag);
           });
           
-          // Show the synonyms section
           synonymsSection.style.display = 'block';
           errorSection.style.display = 'none';
         } else {
-          // No synonyms generated
           errorSection.textContent = 'No synonyms were generated. Try again with a different icon.';
           errorSection.style.display = 'block';
           synonymsSection.style.display = 'none';
         }
       } else if (msg.type === 'description-updated') {
-        // Update the displayed description
         const descriptionElement = document.getElementById('description');
         
         if (msg.hasDescription) {
@@ -335,43 +324,34 @@
           descriptionElement.style.color = '#999';
         }
         
-        // Store the current description
         currentDescription = msg.description || '';
         
-        // Show success message
         const successMessage = document.createElement('div');
         successMessage.textContent = 'Description updated successfully!';
         successMessage.style.color = '#4CAF50';
         successMessage.style.marginTop = '8px';
         successMessage.style.fontSize = '14px';
         
-        // Add success message to the UI
         const actionsContainer = document.querySelector('.actions-container');
         actionsContainer.appendChild(successMessage);
         
-        // Remove the message after 3 seconds
         setTimeout(() => {
           successMessage.remove();
         }, 3000);
       } else if (msg.type === 'generate-error') {
-        // Hide loading indicator
         loadingSection.style.display = 'none';
         
-        // Show error message
         errorSection.textContent = msg.error;
         errorSection.style.display = 'block';
         synonymsSection.style.display = 'none';
       }
     };
     
-    // Handle generate button click
     generateButton.onclick = () => {
-      // Show loading indicator
       loadingSection.style.display = 'flex';
       errorSection.style.display = 'none';
       synonymsSection.style.display = 'none';
       
-      // Send message to plugin
       parent.postMessage({
         pluginMessage: {
           type: 'generate-synonyms'
@@ -379,25 +359,20 @@
       }, '*');
     };
     
-    // Handle select all button click
     selectAllButton.onclick = () => {
       if (generatedSynonyms.length === 0) {
         return;
       }
       
-      // Check if all synonyms are already selected
       const allSelected = selectedSynonyms.size === generatedSynonyms.length;
       
-      // Select or deselect all synonyms
       if (allSelected) {
-        // Deselect all
         selectedSynonyms.clear();
         document.querySelectorAll('.synonym-tag').forEach(tag => {
           tag.classList.remove('selected');
         });
         selectAllButton.textContent = 'Select All';
       } else {
-        // Select all
         generatedSynonyms.forEach(synonym => {
           selectedSynonyms.add(synonym);
         });
@@ -410,14 +385,12 @@
       updateSelectedCount();
     };
     
-    // Handle apply button click
     applyButton.onclick = () => {
       if (selectedSynonyms.size === 0 && !rawPreviewText.trim()) {
         alert('Please select at least one synonym to apply');
         return;
       }
       
-      // Get synonyms from the preview textarea, use raw text to preserve user edits
       const synonymsString = rawPreviewText || Array.from(selectedSynonyms).join(', ');
       
       if (!synonymsString.trim()) {
@@ -425,10 +398,8 @@
         return;
       }
       
-      // Parse the synonyms
       const parsedSynonyms = synonymsString.split(',').map(s => s.trim()).filter(s => s);
       
-      // Send message to update the description with the array of synonyms
       parent.postMessage({
         pluginMessage: {
           type: 'update-description',
@@ -436,17 +407,14 @@
         }
       }, '*');
       
-      // Reset the manually edited flag
       previewContent.dataset.manuallyEdited = false;
     };
     
-    // Handle copy button click
     copyButton.onclick = () => {
       if (generatedSynonyms.length === 0) {
         return;
       }
       
-      // Copy synonyms to clipboard
       const synonymsText = generatedSynonyms.join(', ');
       navigator.clipboard.writeText(synonymsText)
         .then(() => {
@@ -460,7 +428,6 @@
         });
     };
 
-    // Functions to show or hide the preview section
     function showPreview() {
       if (selectedSynonyms.size > 0 || rawPreviewText.trim()) {
         previewSection.style.display = 'block';
@@ -474,10 +441,8 @@
       previewContent.dataset.manuallyEdited = false;
     }
     
-    // Update the preview content
     function updatePreview() {
       if (selectedSynonyms.size > 0 || rawPreviewText.trim()) {
-        // Only update the preview content if it hasn't been manually edited
         if (!previewContent.dataset.manuallyEdited) {
           rawPreviewText = Array.from(selectedSynonyms).join(', ');
           previewContent.value = rawPreviewText;
@@ -488,13 +453,10 @@
       }
     }
 
-    // Add event listener for preview content changes
     previewContent.addEventListener('input', () => {
-      // Mark the content as manually edited
       previewContent.dataset.manuallyEdited = 'true';
       rawPreviewText = previewContent.value;
       
-      // If the preview is empty, hide the preview section
       if (!rawPreviewText.trim() && selectedSynonyms.size === 0) {
         hidePreview();
       }

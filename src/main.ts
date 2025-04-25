@@ -256,8 +256,8 @@ export default function () {
   })
 
   // Add this function somewhere in the main.ts file
-  function updateComponentDescription(newDescription: string): boolean {
-    console.log('Direct function call to update component description:', newDescription);
+  function updateComponentDescription(newSynonyms: string): boolean {
+    console.log('Direct function call to update component description with synonyms:', newSynonyms);
     
     const selection = figma.currentPage.selection[0];
     if (!selection) {
@@ -277,11 +277,33 @@ export default function () {
     }
     
     try {
+      // Get the existing description
+      let existingDescription = "";
+      if (selection.type === 'COMPONENT') {
+        existingDescription = (selection as ComponentNode).description || "";
+      } else {
+        existingDescription = (selection as ComponentSetNode).description || "";
+      }
+      
+      console.log('Existing description:', existingDescription);
+      
+      // Create the new description by preserving existing and appending new synonyms
+      let fullDescription = "";
+      if (existingDescription.trim() === "") {
+        // If no existing description, just use the new synonyms
+        fullDescription = newSynonyms;
+      } else {
+        // If there's an existing description, append an empty line and the new synonyms
+        fullDescription = `${existingDescription}\n\n${newSynonyms}`;
+      }
+      
+      console.log('Final description:', fullDescription);
+      
       // Type assertion to access description property
       if (selection.type === 'COMPONENT') {
-        (selection as ComponentNode).description = newDescription;
+        (selection as ComponentNode).description = fullDescription;
       } else {
-        (selection as ComponentSetNode).description = newDescription;
+        (selection as ComponentSetNode).description = fullDescription;
       }
       
       console.log('Description set successfully');
@@ -302,14 +324,26 @@ export default function () {
   on('update-description', (data: { synonyms: string[] }) => {
     console.log('Received update-description event');
     
-    // Join synonyms and update description
-    const newDescription = data.synonyms.join(', ');
-    const success = updateComponentDescription(newDescription);
+    // Join synonyms
+    const synonymsText = data.synonyms.join(', ');
+    const success = updateComponentDescription(synonymsText);
     
     if (success) {
-      // Notify UI about the update
+      // Get the final description after update
+      const selection = figma.currentPage.selection[0];
+      let finalDescription = "";
+      
+      if (selection) {
+        if (selection.type === 'COMPONENT') {
+          finalDescription = (selection as ComponentNode).description || "";
+        } else if (selection.type === 'COMPONENT_SET') {
+          finalDescription = (selection as ComponentSetNode).description || "";
+        }
+      }
+      
+      // Notify UI about the update with the complete final description
       emit('description-updated', {
-        description: newDescription,
+        description: finalDescription,
         hasDescription: true
       });
       figma.notify('Description updated successfully!');
