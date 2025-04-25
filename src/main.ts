@@ -2,7 +2,7 @@ import { emit, on, showUI } from '@create-figma-plugin/utilities'
 import { exportNodeAsBase64, getBestNodeToExport } from './utils/icon-exporter'
 import { generateSynonyms } from './services/ai-service'
 import { Handler } from './types/index'
-import { DEFAULT_SYSTEM_MESSAGE, DEFAULT_USER_PROMPT } from './prompt-templates'
+import { DEFAULT_SYSTEM_MESSAGE, DEFAULT_USER_PROMPT } from './prompt'
 
 const STORAGE_KEY = 'openai-api-key'
 const SYSTEM_MESSAGE_KEY = 'icon-synonyms-system-message'

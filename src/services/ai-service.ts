@@ -1,5 +1,5 @@
 // AI Service for handling OpenAI integration
-import { getIconSynonymsPrompt } from '../prompt-templates';
+import { getIconSynonymsPrompt } from '../prompt';
 
 interface OpenAIResponse {
   synonyms: string[];
@@ -49,6 +49,11 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     
     const promptData = getIconSynonymsPrompt(params.name, params.existingDescription);
     
+    // Log the messages being sent to OpenAI
+    console.log('Sending to OpenAI:');
+    console.log('System Message:', promptData.systemMessage);
+    console.log('User Prompt:', promptData.userPrompt);
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -96,7 +101,10 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     }
 
     const data = await response.json();
-    console.log('Response from OpenAI:', data.choices[0].message.content);
+    console.log('------------------------------------');
+    console.log('RESPONSE FROM OPENAI:');
+    console.log(data.choices[0].message.content);
+    console.log('------------------------------------');
 
     // Parse the response text into structured format
     const parsedSynonyms = parseAIResponse(data.choices[0].message.content);

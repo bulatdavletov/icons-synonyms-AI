@@ -1,7 +1,7 @@
 import { h, Fragment } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { Button, Container, Text, TextboxMultiline, VerticalSpace } from '@create-figma-plugin/ui'
+import { Button, Container, Text, TextboxMultiline, VerticalSpace, Link } from '@create-figma-plugin/ui'
 
 export function Settings() {
   const [apiKey, setApiKey] = useState<string>('')
@@ -95,9 +95,9 @@ export function Settings() {
       <VerticalSpace space="large" />
       
       {/* API Key Section */}
-      <Text><strong>API Key Settings</strong></Text>
+      <Text><strong>OpenAI API Key</strong></Text>
       <VerticalSpace space="small" />
-      <Text>Enter your OpenAI API key. This will be stored securely on your device and won't be shared with anyone else.</Text>
+      <Text><Link href="https://platform.openai.com/api-keys" target="_blank">Generate it here.</Link> Requires OpenAI account and about 5$.</Text>
       
       <VerticalSpace space="medium" />
       <TextboxMultiline
@@ -119,10 +119,7 @@ export function Settings() {
       <VerticalSpace space="extraLarge" />
       
       {/* Prompt Template Section */}
-      <Text><strong>Prompt Template</strong></Text>
-      <VerticalSpace space="small" />
-      <Text>Customize the prompt used for icon description generation. This affects how the AI interprets and describes your icons.</Text>
-      
+      <Text><strong>Prompt</strong></Text>      
       <VerticalSpace space="medium" />
       <TextboxMultiline
         placeholder="Enter user prompt..."
