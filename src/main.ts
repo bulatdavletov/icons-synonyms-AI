@@ -2,8 +2,11 @@ import { emit, on, showUI } from '@create-figma-plugin/utilities'
 import { exportNodeAsBase64, getBestNodeToExport } from './utils/icon-exporter'
 import { generateSynonyms } from './services/ai-service'
 import { Handler } from './types/index'
+import { DEFAULT_SYSTEM_MESSAGE, DEFAULT_USER_PROMPT } from './prompt-templates'
 
 const STORAGE_KEY = 'openai-api-key'
+const SYSTEM_MESSAGE_KEY = 'icon-synonyms-system-message'
+const USER_PROMPT_KEY = 'icon-synonyms-user-prompt'
 
 /**
  * Processes synonyms into a flat list
@@ -11,28 +14,36 @@ const STORAGE_KEY = 'openai-api-key'
  * @returns Flat list of unique synonyms
  */
 function processSynonyms(synonyms: string[]): string[] {
+  console.log('Processing synonyms input:', synonyms);
+  
   const processedSynonyms: string[] = [];
   
   // Process each line
   for (const line of synonyms) {
+    console.log('Processing line:', line);
+    
     const colonIndex = line.indexOf(':');
     if (colonIndex > 0) {
-      // Get the content after the colon
+      // Get the content after the colon (for our formatted items)
       const content = line.substring(colonIndex + 1).trim();
+      console.log('Content after colon:', content);
       
-      // Split by commas if present and add each term
-      if (content.includes(',')) {
-        const terms = content.split(',').map(term => term.trim()).filter(term => term.length > 0);
-        processedSynonyms.push(...terms);
-      } else if (content.length > 0) {
-        // Add the whole content if no commas and not empty
+      if (content.length > 0) {
+        // Add the content directly - it should already be a single term
+        console.log('Adding term:', content);
         processedSynonyms.push(content);
       }
+    } else if (line.length > 0) {
+      // For any plain text without categories
+      console.log('Adding line without colon:', line);
+      processedSynonyms.push(line.trim());
     }
   }
   
   // Remove duplicates and return
-  return Array.from(new Set(processedSynonyms));
+  const uniqueSynonyms = Array.from(new Set(processedSynonyms));
+  console.log('Final processed synonyms:', uniqueSynonyms);
+  return uniqueSynonyms;
 }
 
 export default function () {
@@ -105,6 +116,68 @@ export default function () {
     } catch (error: any) {
       console.error('Error saving API key:', error)
       emit('api-key-save-error', { error: error.message || 'Failed to save API key' })
+    }
+  })
+
+  // Handle requests for prompt templates
+  on('get-prompt-templates', async () => {
+    try {
+      // Get prompt templates from client storage
+      const systemMessage = await figma.clientStorage.getAsync(SYSTEM_MESSAGE_KEY) || DEFAULT_SYSTEM_MESSAGE
+      const userPrompt = await figma.clientStorage.getAsync(USER_PROMPT_KEY) || DEFAULT_USER_PROMPT
+      
+      emit('prompt-templates-response', { 
+        systemMessage, 
+        userPrompt,
+        isDefault: systemMessage === DEFAULT_SYSTEM_MESSAGE && userPrompt === DEFAULT_USER_PROMPT
+      })
+    } catch (error) {
+      console.error('Error retrieving prompt templates:', error)
+      emit('prompt-templates-response', { 
+        systemMessage: DEFAULT_SYSTEM_MESSAGE, 
+        userPrompt: DEFAULT_USER_PROMPT,
+        isDefault: true
+      })
+    }
+  })
+
+  // Handle save requests for prompt templates
+  on('save-prompt-templates', async (data: { systemMessage: string; userPrompt: string }) => {
+    try {
+      // Validate that the templates are not empty
+      if (!data.systemMessage || !data.systemMessage.trim() || !data.userPrompt || !data.userPrompt.trim()) {
+        emit('prompt-templates-save-error', { error: 'Prompt templates cannot be empty' })
+        return
+      }
+
+      // Save prompt templates to client storage
+      await figma.clientStorage.setAsync(SYSTEM_MESSAGE_KEY, data.systemMessage.trim())
+      await figma.clientStorage.setAsync(USER_PROMPT_KEY, data.userPrompt.trim())
+      
+      emit('prompt-templates-saved')
+    } catch (error: any) {
+      console.error('Error saving prompt templates:', error)
+      emit('prompt-templates-save-error', { error: error.message || 'Failed to save prompt templates' })
+    }
+  })
+
+  // Handle reset prompt templates to default
+  on('reset-prompt-templates', async () => {
+    try {
+      // Reset to default templates
+      await figma.clientStorage.setAsync(SYSTEM_MESSAGE_KEY, DEFAULT_SYSTEM_MESSAGE)
+      await figma.clientStorage.setAsync(USER_PROMPT_KEY, DEFAULT_USER_PROMPT)
+      
+      emit('prompt-templates-response', { 
+        systemMessage: DEFAULT_SYSTEM_MESSAGE, 
+        userPrompt: DEFAULT_USER_PROMPT,
+        isDefault: true
+      })
+      
+      emit('prompt-templates-reset')
+    } catch (error: any) {
+      console.error('Error resetting prompt templates:', error)
+      emit('prompt-templates-save-error', { error: error.message || 'Failed to reset prompt templates' })
     }
   })
 

@@ -1,47 +1,45 @@
 // Prompt template for AI service
 
+export const DEFAULT_SYSTEM_MESSAGE = `You are a Figma plugin that creates icon descriptions to improve searchability.
+Your only task is to analyze the icon and return a list of words separated by commas, all in lowercase.
+Do not use markdown, formatting, bullets, or numbering. Just plain text.
+Format your response as a simple comma-separated list in lowercase without bullets, numbering or other formatting.`;
+
+export const DEFAULT_USER_PROMPT = `Look at the icon and generate a list of relevant keywords, separated by commas. Include:
+
+- Split camelCase names (e.g., "projectStructure" → "project structure")
+- Description of what the icon shows (e.g., "folder with gear")
+- What the icon is typically used for (e.g., "settings", "delete", "add")
+- All separate objects visible in the icon (e.g., "folder, gear, lock")
+- Basic shapes present (e.g., "circle", "square", "rectangle")
+- Direction of arrows if present (e.g., "arrow down", "arrow left")
+
+Don't use words like "icon", "symbol", "image".
+Don't repeat the name or existing description.`;
+
 /**
  * Generate a prompt for icon synonym generation
  * @param iconName The name of the icon
  * @param existingDescription The existing description of the icon (if any)
- * @returns A formatted prompt string
+ * @param systemMessage The system message to use (defaults to DEFAULT_SYSTEM_MESSAGE)
+ * @param userPrompt The user prompt to use (defaults to DEFAULT_USER_PROMPT)
+ * @returns An object with system message and user prompt
  */
-export function getIconSynonymsPrompt(iconName: string, existingDescription?: string): string {
-  return `
-    This is an icon named "${iconName}". 
-    ${existingDescription ? `It currently has this description: "${existingDescription}"` : ''}
-    Please analyze this icon and provide information in the following format. Each line should start with the category name:
+export function getIconSynonymsPrompt(
+  iconName: string, 
+  existingDescription?: string,
+  systemMessage: string = DEFAULT_SYSTEM_MESSAGE,
+  userPrompt: string = DEFAULT_USER_PROMPT
+): { systemMessage: string; userPrompt: string } {
+  const iconInfo = `Info from Figma:
+This is an icon named "${iconName}". 
+${existingDescription ? `It currently has this description: "${existingDescription}"` : ''}
 
-    1. Usage (required):
-       - This is how the icon is used in the IDE
-       - Usually it's the name of the action or feature
-       - If name contains multiple words in camelCase, split them with spaces
-       - Example: "projectStructure" -> "Usage: project structure"
-       - Format: "Usage: your text here"
+---
+`;
 
-    2. Object (required):
-       - The main object represented in the icon
-       - Example: if named "projectStructure" but shows a folder icon -> "Object: folder"
-       - Can include multiple related terms separated by commas
-       - Format: "Object: term1, term2"
-
-    3. Modificator (if found, leave empty if not):
-       - Look for small icons/indicators in the corners (usually bottom right)
-       - Example: folder with gear icon -> "Modificator: gear, settings"
-       - Format: "Modificator: term1, term2" (or leave empty)
-
-    4. Shapes (if found, leave empty if not):
-       - List any simple shapes you see in the icon
-       - Include circles, squares, rectangles, arrows, etc.
-       - Example: "Shapes: circle, arrow, triangle"
-       - Format: "Shapes: shape1, shape2, shape3"
-
-    Example outputs:
-    project structure, folder with gear
-    sort by visibility, arrow down with lock
-
-    Context: These icons are used in JetBrains IDEs. There are 2 identical icons in dark and light themes.
-    Don't use words like "icon", "symbol", "image", etc.
-    Don't repeat the name of icon or existing description.
-  `;
+  return {
+    systemMessage,
+    userPrompt: `${iconInfo}${userPrompt}`
+  };
 } 

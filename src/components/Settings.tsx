@@ -1,20 +1,31 @@
-import { h } from 'preact'
+import { h, Fragment } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { Button, Container, Text, TextboxMultiline, VerticalSpace } from '@create-figma-plugin/ui'
 
 export function Settings() {
   const [apiKey, setApiKey] = useState<string>('')
+  const [userPrompt, setUserPrompt] = useState<string>('')
+  const [systemMessage, setSystemMessage] = useState<string>('') // We still need to store it, just not edit it
+  const [isDefaultPrompt, setIsDefaultPrompt] = useState<boolean>(true)
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
   useEffect(() => {
-    // Request current API key when component mounts
+    // Request current API key and prompt templates when component mounts
     emit('get-api-key')
+    emit('get-prompt-templates')
 
     // Listen for API key from main thread
     on('api-key-response', (data: { apiKey: string }) => {
       setApiKey(data.apiKey || '')
+    })
+
+    // Listen for prompt templates from main thread
+    on('prompt-templates-response', (data: { systemMessage: string, userPrompt: string, isDefault: boolean }) => {
+      setSystemMessage(data.systemMessage || '')
+      setUserPrompt(data.userPrompt || '')
+      setIsDefaultPrompt(data.isDefault)
     })
 
     // Listen for save responses
@@ -32,6 +43,32 @@ export function Settings() {
       setIsSaving(false)
       setSaveStatus({ type: 'error', message: data.error })
     })
+
+    on('prompt-templates-saved', () => {
+      setIsSaving(false)
+      setSaveStatus({ type: 'success', message: 'Prompt template saved successfully!' })
+      setIsDefaultPrompt(false)
+      
+      // Clear status after 3 seconds
+      setTimeout(() => {
+        setSaveStatus(null)
+      }, 3000)
+    })
+
+    on('prompt-templates-reset', () => {
+      setIsSaving(false)
+      setSaveStatus({ type: 'success', message: 'Prompt template reset to default!' })
+      
+      // Clear status after 3 seconds
+      setTimeout(() => {
+        setSaveStatus(null)
+      }, 3000)
+    })
+
+    on('prompt-templates-save-error', (data: { error: string }) => {
+      setIsSaving(false)
+      setSaveStatus({ type: 'error', message: data.error })
+    })
   }, [])
 
   const handleSaveApiKey = () => {
@@ -40,9 +77,24 @@ export function Settings() {
     emit('save-api-key', { apiKey })
   }
 
+  const handleSavePromptTemplate = () => {
+    setIsSaving(true)
+    setSaveStatus(null)
+    // Pass the current system message unchanged to preserve it
+    emit('save-prompt-templates', { systemMessage, userPrompt })
+  }
+
+  const handleResetPromptTemplate = () => {
+    setIsSaving(true)
+    setSaveStatus(null)
+    emit('reset-prompt-templates')
+  }
+
   return (
     <Container space="medium">
       <VerticalSpace space="large" />
+      
+      {/* API Key Section */}
       <Text><strong>API Key Settings</strong></Text>
       <VerticalSpace space="small" />
       <Text>Enter your OpenAI API key. This will be stored securely on your device and won't be shared with anyone else.</Text>
@@ -63,6 +115,39 @@ export function Settings() {
       >
         {isSaving ? 'Saving...' : 'Save API Key'}
       </Button>
+      
+      <VerticalSpace space="extraLarge" />
+      
+      {/* Prompt Template Section */}
+      <Text><strong>Prompt Template</strong></Text>
+      <VerticalSpace space="small" />
+      <Text>Customize the prompt used for icon description generation. This affects how the AI interprets and describes your icons.</Text>
+      
+      <VerticalSpace space="medium" />
+      <TextboxMultiline
+        placeholder="Enter user prompt..."
+        value={userPrompt}
+        onValueInput={value => setUserPrompt(value)}
+        rows={12}
+      />
+      
+      <VerticalSpace space="medium" />
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <Button 
+          onClick={handleSavePromptTemplate} 
+          disabled={isSaving || !userPrompt.trim()}
+        >
+          {isSaving ? 'Saving...' : 'Save Template'}
+        </Button>
+        
+        <Button
+          secondary
+          onClick={handleResetPromptTemplate}
+          disabled={isSaving || isDefaultPrompt}
+        >
+          Reset to Default
+        </Button>
+      </div>
 
       {saveStatus && (
         <div>
