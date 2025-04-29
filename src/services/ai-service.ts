@@ -1,5 +1,5 @@
 // AI Service for handling OpenAI integration
-import { getIconSynonymsPrompt } from '../prompt';
+import { getIconSynonymsPrompt } from '../../prompt';
 
 interface OpenAIResponse {
   synonyms: string[];
