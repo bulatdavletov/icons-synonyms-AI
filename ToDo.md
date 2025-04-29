@@ -1,6 +1,14 @@
 - Batch processing
     - Create separate cards for several selected icons
 
+- 2 Must have options that are checked by default: name with spaces, and description of icon.
+    - Synonyms are optional
+
+- Edit description of the same components with another size:
+    - toolwindow / ant
+    - toolwindow / ant@20x20
+    - toolwindow / ant@14x14
+
 - Add regenerate button to one icon card
 
 - Generate is for all selected components, apply is for current component
