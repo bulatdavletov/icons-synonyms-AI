@@ -43,6 +43,7 @@ export function App() {
     
     // Listen for description updates
     on('description-updated', (data: { description: string, hasDescription: boolean }) => {
+      console.log('Received description-updated event:', data);
       setComponentInfo(prevInfo => {
         if (!prevInfo) return null
         return {
@@ -55,7 +56,17 @@ export function App() {
       setSelectedSynonyms([])
       setNewlySelectedSynonyms([])
     })
-  }, [])
+
+    // Listen for request to get current synonyms
+    on('get-current-synonyms', () => {
+      console.log('Received get-current-synonyms event');
+      // If we have generated synonyms but none selected, send all of them
+      // Otherwise send the selected ones
+      const synmsToSend = selectedSynonyms.length > 0 ? selectedSynonyms : synonyms;
+      console.log('Sending current synonyms:', synmsToSend);
+      emit('current-synonyms-response', { synonyms: synmsToSend });
+    })
+  }, [selectedSynonyms, synonyms])
 
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab)
@@ -99,19 +110,30 @@ export function App() {
   }
 
   const handleApplySelected = () => {
-    if (descriptionText && descriptionText.trim()) {
-      try {
+    try {
+      console.log('Save Description button clicked');
+      console.log('Current description text:', descriptionText);
+      
+      // If we have selected synonyms, use those; otherwise, send the raw description text
+      if (selectedSynonyms.length > 0) {
+        console.log('Emitting update-description with selectedSynonyms:', selectedSynonyms);
         emit('update-description', { 
-          synonyms: descriptionText.split(',')
-        .map(s => s.trim())
-            .filter(s => s.length > 0),
+          synonyms: selectedSynonyms,
           isManualEdit: false
-        })
-      setSelectedSynonyms([])
-        setNewlySelectedSynonyms([])
-      } catch (error) {
-        console.error('Error applying selected synonyms:', error)
+        });
+      } else {
+        // If no synonyms selected but we have edited the description text manually
+        console.log('Emitting update-description with raw description');
+        emit('update-description', { 
+          rawDescription: descriptionText || '',
+          isManualEdit: true
+        });
       }
+      
+      setSelectedSynonyms([]);
+      setNewlySelectedSynonyms([]);
+    } catch (error) {
+      console.error('Error applying selected synonyms:', error);
     }
   }
 
@@ -201,9 +223,8 @@ export function App() {
                     <Button 
                       fullWidth 
                       onClick={handleApplySelected}
-                      disabled={!descriptionText || !descriptionText.trim()}
                     >
-                      Add to Description
+                      Save Description
                     </Button>
                   </Fragment>
                 )}

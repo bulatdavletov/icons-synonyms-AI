@@ -24,10 +24,14 @@ export function ComponentInfo({
   const [hasPendingChanges, setHasPendingChanges] = useState(false)
   const processedSynonyms = useRef<string[]>([])
   
+  console.log('ComponentInfo rendered with description:', description);
+  
   // Update local state when props change
   useEffect(() => {
+    console.log('description prop changed:', description);
     if (!hasPendingChanges) {
       setEditedDescription(description || '')
+      console.log('Updated editedDescription state to:', description || '');
     }
   }, [description, hasPendingChanges])
   
@@ -73,12 +77,16 @@ export function ComponentInfo({
   }, [description])
   
   const handleDescriptionChange = (value: string) => {
-    setEditedDescription(value)
-    setHasPendingChanges(value !== description)
+    console.log('handleDescriptionChange called with value:', value);
+    setEditedDescription(value);
+    setHasPendingChanges(value !== description);
+    console.log('hasPendingChanges set to:', value !== description);
     
-    // Notify parent if callback provided
+    // Notify parent if callback provided - always call this to keep parent state in sync
     if (onDescriptionChange) {
-      onDescriptionChange(value)
+      console.log('Calling parent onDescriptionChange with:', value);
+      // Always call parent callback to keep the state in sync
+      onDescriptionChange(value);
     }
   }
   
@@ -113,14 +121,6 @@ export function ComponentInfo({
               style={{ width: '100%', minHeight: '80px' }}
               rows={4}
             />
-            
-            {hasPendingChanges && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                <Button onClick={handleSave}>
-                  Save Description
-                </Button>
-              </div>
-          )}
           </Stack>
         )}
       </Stack>

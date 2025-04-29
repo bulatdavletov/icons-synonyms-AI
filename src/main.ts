@@ -245,10 +245,111 @@ export default function () {
     }
   })
 
+  // Then update the 'update-description' handler:
+  on('update-description', (data: { synonyms?: string[], rawDescription?: string, isManualEdit?: boolean }) => {
+    try {
+      console.log('update-description event received with data:', data);
+      
+      // Determine what text to use for the description update
+      let textToUpdate = '';
+      
+      if (data.isManualEdit && data.rawDescription !== undefined) {
+        // Use the raw description text for manual edits
+        textToUpdate = data.rawDescription;
+        console.log('Using rawDescription for update:', textToUpdate);
+      } else if (data.synonyms && Array.isArray(data.synonyms)) {
+        // Join synonyms for synonym selection
+        textToUpdate = data.synonyms.join(', ');
+        console.log('Using joined synonyms for update:', textToUpdate);
+      }
+      
+      // If both are empty but we have previously generated synonyms, check the UI state
+      if (textToUpdate === '' && !data.isManualEdit) {
+        emit('get-current-synonyms');
+        return;
+      }
+      
+      console.log('Text to update before calling updateComponentDescription:', textToUpdate);
+      
+      // Even if textToUpdate is empty, we'll still process it - allow clearing descriptions
+      const success = updateComponentDescription(textToUpdate);
+      console.log('updateComponentDescription result:', success);
+    
+      if (success) {
+        // Get the final description after update
+        const selection = figma.currentPage.selection[0];
+        let finalDescription = "";
+        
+        if (selection) {
+          if (selection.type === 'COMPONENT') {
+            finalDescription = (selection as ComponentNode).description || "";
+          } else if (selection.type === 'COMPONENT_SET') {
+            finalDescription = (selection as ComponentSetNode).description || "";
+          }
+          console.log('Updated component description:', finalDescription);
+        } else {
+          console.log('No selection found after update');
+        }
+        
+        // Notify UI about the update with the complete final description
+        emit('description-updated', {
+          description: finalDescription,
+          hasDescription: finalDescription.trim() !== ''
+        });
+        console.log('Emitted description-updated event with:', {
+          description: finalDescription,
+          hasDescription: finalDescription.trim() !== ''
+        });
+      } else {
+        console.error('Failed to update component description');
+        emit('generate-error', {
+          error: 'Failed to update component description'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error updating description:', error);
+      emit('generate-error', {
+        error: error?.message || 'Error updating description'
+      });
+    }
+  });
+
+  // Add handler for getting current synonyms from UI
+  on('current-synonyms-response', (data: { synonyms: string[] }) => {
+    if (data.synonyms && data.synonyms.length > 0) {
+      const textToUpdate = data.synonyms.join(', ');
+      console.log('Using current synonyms from UI:', textToUpdate);
+      
+      const success = updateComponentDescription(textToUpdate);
+      
+      if (success) {
+        // Get the final description after update
+        const selection = figma.currentPage.selection[0];
+        let finalDescription = "";
+        
+        if (selection) {
+          if (selection.type === 'COMPONENT') {
+            finalDescription = (selection as ComponentNode).description || "";
+          } else if (selection.type === 'COMPONENT_SET') {
+            finalDescription = (selection as ComponentSetNode).description || "";
+          }
+        }
+        
+        emit('description-updated', {
+          description: finalDescription,
+          hasDescription: finalDescription.trim() !== ''
+        });
+      }
+    }
+  });
+
   // Add this function somewhere in the main.ts file
   function updateComponentDescription(newSynonyms: string): boolean {
-    if (!newSynonyms) {
-      console.error('No new synonyms provided');
+    console.log('updateComponentDescription called with:', newSynonyms);
+    
+    // Allow empty strings to clear the description
+    if (newSynonyms === undefined || newSynonyms === null) {
+      console.error('Invalid description value');
       return false;
     }
     
@@ -257,9 +358,10 @@ export default function () {
       console.error('No selection found');
       return false;
     }
+    console.log('Current selection:', selection.name, selection.type);
     
     if (selection.type !== 'COMPONENT' && selection.type !== 'COMPONENT_SET') {
-      console.error('Selected node is not a component or component set');
+      console.error('Selected node is not a component or component set:', selection.type);
       return false;
     }
     
@@ -271,21 +373,30 @@ export default function () {
       } else {
         existingDescription = (selection as ComponentSetNode).description || "";
       }
+      console.log('Existing description:', existingDescription);
       
       // Create the new description by preserving existing and appending new synonyms
       let fullDescription = "";
-      if (!existingDescription || existingDescription.trim() === "") {
-        // If no existing description, just use the new synonyms
-        fullDescription = newSynonyms;
+      
+      // If the new content is empty, clear the description
+      if (newSynonyms.trim() === "") {
+        // If empty, use empty string (clearing description)
+        fullDescription = '';
+        console.log('Using empty description');
       } else {
-        // If there's an existing description, append an empty line and the new synonyms
-        fullDescription = `${existingDescription}\n\n${newSynonyms}`;
+        // Use the new synonyms directly (replacing previous description)
+        fullDescription = newSynonyms;
+        console.log('Using new synonyms as description');
       }
+      
+      console.log('Full description to set:', fullDescription);
       
       // Type assertion to access description property
       if (selection.type === 'COMPONENT') {
+        console.log('Setting description on COMPONENT');
         (selection as ComponentNode).description = fullDescription;
       } else {
+        console.log('Setting description on COMPONENT_SET');
         (selection as ComponentSetNode).description = fullDescription;
       }
       
@@ -293,8 +404,17 @@ export default function () {
       const currentSelection = figma.currentPage.selection;
       figma.currentPage.selection = [];
       setTimeout(() => {
-      figma.currentPage.selection = currentSelection;
-      }, 0);
+        figma.currentPage.selection = currentSelection;
+        
+        // Verify the description was set correctly
+        if (selection.type === 'COMPONENT') {
+          const updatedDescription = (selection as ComponentNode).description;
+          console.log('Verified updated COMPONENT description:', updatedDescription);
+        } else if (selection.type === 'COMPONENT_SET') {
+          const updatedDescription = (selection as ComponentSetNode).description;
+          console.log('Verified updated COMPONENT_SET description:', updatedDescription);
+        }
+      }, 100);
       
       return true;
     } catch (error) {
@@ -302,60 +422,6 @@ export default function () {
       return false;
     }
   }
-
-  // Then update the 'update-description' handler:
-  on('update-description', (data: { synonyms?: string[], rawDescription?: string, isManualEdit?: boolean }) => {
-    try {
-      // Determine what text to use for the description update
-      let textToUpdate = '';
-      
-      if (data.isManualEdit && data.rawDescription !== undefined) {
-        // Use the raw description text for manual edits
-        textToUpdate = data.rawDescription;
-      } else if (data.synonyms && Array.isArray(data.synonyms)) {
-        // Join synonyms for synonym selection
-        textToUpdate = data.synonyms.join(', ');
-      }
-      
-      if (!textToUpdate.trim()) {
-        emit('generate-error', {
-          error: 'No description text to update'
-        });
-        return;
-      }
-      
-      const success = updateComponentDescription(textToUpdate);
-    
-    if (success) {
-      // Get the final description after update
-      const selection = figma.currentPage.selection[0];
-      let finalDescription = "";
-      
-      if (selection) {
-        if (selection.type === 'COMPONENT') {
-          finalDescription = (selection as ComponentNode).description || "";
-        } else if (selection.type === 'COMPONENT_SET') {
-          finalDescription = (selection as ComponentSetNode).description || "";
-        }
-      }
-      
-      // Notify UI about the update with the complete final description
-      emit('description-updated', {
-        description: finalDescription,
-          hasDescription: finalDescription.trim() !== ''
-      });
-    } else {
-      emit('generate-error', {
-        error: 'Failed to update component description'
-        });
-      }
-    } catch (error: any) {
-      console.error('Error updating description:', error);
-      emit('generate-error', {
-        error: error?.message || 'Error updating description'
-      });
-    }
-  });
 
   // Initialize
   figma.on('selectionchange', sendSelectionToUI)
