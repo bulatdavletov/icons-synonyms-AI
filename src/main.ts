@@ -247,6 +247,10 @@ export default function () {
 
   // Add this function somewhere in the main.ts file
   function updateComponentDescription(newSynonyms: string): boolean {
+    if (!newSynonyms) {
+      console.error('No new synonyms provided');
+      return false;
+    }
     
     const selection = figma.currentPage.selection[0];
     if (!selection) {
@@ -270,7 +274,7 @@ export default function () {
       
       // Create the new description by preserving existing and appending new synonyms
       let fullDescription = "";
-      if (existingDescription.trim() === "") {
+      if (!existingDescription || existingDescription.trim() === "") {
         // If no existing description, just use the new synonyms
         fullDescription = newSynonyms;
       } else {
@@ -288,7 +292,9 @@ export default function () {
       // Force a UI update
       const currentSelection = figma.currentPage.selection;
       figma.currentPage.selection = [];
+      setTimeout(() => {
       figma.currentPage.selection = currentSelection;
+      }, 0);
       
       return true;
     } catch (error) {
@@ -298,11 +304,27 @@ export default function () {
   }
 
   // Then update the 'update-description' handler:
-  on('update-description', (data: { synonyms: string[] }) => {
-    
-    // Join synonyms
-    const synonymsText = data.synonyms.join(', ');
-    const success = updateComponentDescription(synonymsText);
+  on('update-description', (data: { synonyms?: string[], rawDescription?: string, isManualEdit?: boolean }) => {
+    try {
+      // Determine what text to use for the description update
+      let textToUpdate = '';
+      
+      if (data.isManualEdit && data.rawDescription !== undefined) {
+        // Use the raw description text for manual edits
+        textToUpdate = data.rawDescription;
+      } else if (data.synonyms && Array.isArray(data.synonyms)) {
+        // Join synonyms for synonym selection
+        textToUpdate = data.synonyms.join(', ');
+      }
+      
+      if (!textToUpdate.trim()) {
+        emit('generate-error', {
+          error: 'No description text to update'
+        });
+        return;
+      }
+      
+      const success = updateComponentDescription(textToUpdate);
     
     if (success) {
       // Get the final description after update
@@ -320,11 +342,17 @@ export default function () {
       // Notify UI about the update with the complete final description
       emit('description-updated', {
         description: finalDescription,
-        hasDescription: true
+          hasDescription: finalDescription.trim() !== ''
       });
     } else {
       emit('generate-error', {
         error: 'Failed to update component description'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error updating description:', error);
+      emit('generate-error', {
+        error: error?.message || 'Error updating description'
       });
     }
   });

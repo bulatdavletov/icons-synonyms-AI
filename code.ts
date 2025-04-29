@@ -106,14 +106,21 @@ export default function () {
     }
   })
 
-  on('update-description', (data: { synonyms: string[] }) => {
+  on('update-description', (data: { synonyms?: string[], rawDescription?: string, isManualEdit?: boolean }) => {
     const selection = figma.currentPage.selection[0]
     
     if (selection && (selection.type === "COMPONENT" || selection.type === "COMPONENT_SET")) {
       try {
-        // Join all synonyms without separating by groups
-        const synonymsText = data.synonyms.join(', ')
-        console.log('Synonyms text to add:', synonymsText)
+        // Get the text to set based on whether it's a raw description or synonyms
+        let textToSet = '';
+        
+        if (data.isManualEdit && data.rawDescription !== undefined) {
+          textToSet = data.rawDescription;  // Use raw text for manual edits
+        } else if (data.synonyms && Array.isArray(data.synonyms)) {
+          textToSet = data.synonyms.join(', ');  // Use joined synonyms otherwise
+        }
+        
+        console.log('Text to set:', textToSet)
         
         // Get the current description using a different approach
         figma.loadFontAsync({ family: "Inter", style: "Regular" }).then(() => {
@@ -126,14 +133,18 @@ export default function () {
             currentDescription = (selection as ComponentSetNode).description || ""
           }
           
-          // Create new description by preserving existing and appending synonyms
+          // Create new description based on whether this is a manual edit or adding synonyms
           let newText = ""
-          if (currentDescription.trim() === "") {
-            // If no existing description, just use the synonyms
-            newText = synonymsText
+          if (data.isManualEdit) {
+            // For manual edits, completely replace the description
+            newText = textToSet
           } else {
-            // If there's an existing description, append an empty line and then the synonyms
-            newText = `${currentDescription}\n\n${synonymsText}`
+            // For adding synonyms, append to existing description
+            if (currentDescription.trim() === "") {
+              newText = textToSet
+            } else {
+              newText = `${currentDescription}\n\n${textToSet}`
+            }
           }
           
           try {
@@ -196,7 +207,7 @@ export default function () {
             
             // Try fallback approach
             try {
-              const fallbackDescription = currentDescription + "\n\n" + synonymsText
+              const fallbackDescription = data.isManualEdit ? textToSet : (currentDescription + "\n\n" + textToSet)
               selection.setPluginData('custom-description', fallbackDescription)
               selection.setRelaunchData({ 'custom-description': fallbackDescription })
               

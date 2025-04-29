@@ -390,7 +390,11 @@
         return;
       }
       
-      const synonymsString = rawPreviewText || Array.from(selectedSynonyms).join(', ');
+      try {
+        // Make sure we have valid data before joining
+        const synonymsSet = selectedSynonyms || new Set();
+        const synonymsString = rawPreviewText || 
+          (synonymsSet.size > 0 ? Array.from(synonymsSet).join(', ') : '');
       
       if (!synonymsString.trim()) {
         alert('Preview content cannot be empty');
@@ -407,14 +411,19 @@
       }, '*');
       
       previewContent.dataset.manuallyEdited = false;
+      } catch (error) {
+        console.error('Error applying synonyms:', error);
+        alert('An error occurred while applying synonyms. Please try again.');
+      }
     };
     
     copyButton.onclick = () => {
-      if (generatedSynonyms.length === 0) {
+      try {
+        if (!generatedSynonyms || generatedSynonyms.length === 0) {
         return;
       }
       
-      const synonymsText = generatedSynonyms.join(', ');
+        const synonymsText = Array.isArray(generatedSynonyms) ? generatedSynonyms.join(', ') : '';
       navigator.clipboard.writeText(synonymsText)
         .then(() => {
           copyButton.textContent = 'Copied!';
@@ -425,6 +434,9 @@
         .catch(err => {
           console.error('Failed to copy: ', err);
         });
+      } catch (error) {
+        console.error('Error copying synonyms:', error);
+      }
     };
 
     function showPreview() {
@@ -441,14 +453,19 @@
     }
     
     function updatePreview() {
-      if (selectedSynonyms.size > 0 || rawPreviewText.trim()) {
+      try {
+        if ((selectedSynonyms && selectedSynonyms.size > 0) || (rawPreviewText && rawPreviewText.trim())) {
         if (!previewContent.dataset.manuallyEdited) {
-          rawPreviewText = Array.from(selectedSynonyms).join(', ');
-          previewContent.value = rawPreviewText;
+            const synonymsSet = selectedSynonyms || new Set();
+            rawPreviewText = synonymsSet.size > 0 ? Array.from(synonymsSet).join(', ') : '';
+            previewContent.value = rawPreviewText || '';
         }
         showPreview();
       } else {
         hidePreview();
+        }
+      } catch (error) {
+        console.error('Error updating preview:', error);
       }
     }
 

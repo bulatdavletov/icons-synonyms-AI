@@ -15,18 +15,22 @@ export function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedSynonyms, setSelectedSynonyms] = useState<string[]>([])
-  const [previewText, setPreviewText] = useState<string>('')
+  const [newlySelectedSynonyms, setNewlySelectedSynonyms] = useState<string[]>([])
+  const [descriptionText, setDescriptionText] = useState<string>('')
 
   useEffect(() => {
     // Listen for selection changes
     on('selection-change', (data: ComponentInfoType) => {
       setComponentInfo(data)
+      setDescriptionText(data.description || '')
       setError(null)
+      setSelectedSynonyms([]) // Reset selected synonyms when selection changes
+      setNewlySelectedSynonyms([]) // Also reset newly selected synonyms
     })
 
     // Listen for generated synonyms
     on('synonyms-generated', (data: { synonyms: string[] }) => {
-      setSynonyms(data.synonyms)
+      setSynonyms(data.synonyms || [])
       setLoading(false)
       setError(null)
     })
@@ -47,8 +51,9 @@ export function App() {
           hasDescription: data.hasDescription
         }
       })
+      setDescriptionText(data.description || '')
       setSelectedSynonyms([])
-      setPreviewText('')
+      setNewlySelectedSynonyms([])
     })
   }, [])
 
@@ -64,43 +69,49 @@ export function App() {
   }
 
   const handleSynonymClick = (synonym: string) => {
+    if (!synonym) return
+    
     setSelectedSynonyms(prev => {
-      const newSynonyms = prev.includes(synonym)
-        ? prev.filter(s => s !== synonym)
-        : [...prev, synonym]
+      const prevArray = Array.isArray(prev) ? prev : []
+      const isSelected = prevArray.includes(synonym)
+      const newSynonyms = isSelected
+        ? prevArray.filter(s => s !== synonym)
+        : [...prevArray, synonym]
       
-      // Update preview text when synonyms change - preserve existing edits
-      if (previewText.trim()) {
-        // If there's already text in the preview, add the new selection
-        // Check if we're adding or removing
-        if (prev.includes(synonym)) {
-          // Removing - no need to update preview text as user may have edited it
-          return newSynonyms;
-        } else {
-          // Adding - append to existing text with proper comma
-          const lastChar = previewText.trim().slice(-1);
-          const separator = (lastChar === ',' || lastChar === '') ? ' ' : ', ';
-          setPreviewText(previewText.trim() + separator + synonym);
-        }
-      } else {
-        // If no text, just use the comma-separated list
-        setPreviewText(newSynonyms.join(', '));
+      // When adding a new synonym, add it to the newly selected array
+      if (!isSelected) {
+        setNewlySelectedSynonyms(current => {
+          const currentArray = Array.isArray(current) ? current : []
+          // Make sure we don't add duplicates
+          if (!currentArray.includes(synonym)) {
+            return [...currentArray, synonym]
+          }
+          return currentArray
+        })
       }
       
-      return newSynonyms;
-    });
+      return newSynonyms
+    })
+  }
+
+  const handleDescriptionChange = (value: string) => {
+    setDescriptionText(value || '')
   }
 
   const handleApplySelected = () => {
-    // Use the raw text from the textarea, which might have been edited directly
-    if (previewText.trim()) {
-      const synonyms = previewText.split(',')
+    if (descriptionText && descriptionText.trim()) {
+      try {
+        emit('update-description', { 
+          synonyms: descriptionText.split(',')
         .map(s => s.trim())
-        .filter(s => s.length > 0)
-      
-      emit('update-description', { synonyms })
+            .filter(s => s.length > 0),
+          isManualEdit: false
+        })
       setSelectedSynonyms([])
-      setPreviewText('')
+        setNewlySelectedSynonyms([])
+      } catch (error) {
+        console.error('Error applying selected synonyms:', error)
+      }
     }
   }
 
@@ -145,6 +156,8 @@ export function App() {
                 type={componentInfo.type}
                 description={componentInfo.description}
                 hasDescription={componentInfo.hasDescription}
+                selectedSynonyms={newlySelectedSynonyms}
+                onDescriptionChange={handleDescriptionChange}
               />
             )}
 
@@ -157,7 +170,7 @@ export function App() {
               </Fragment>
             )}
 
-            {synonyms.length > 0 && (
+            {synonyms && synonyms.length > 0 && (
               <Fragment>
                 <VerticalSpace space="small" />
                 <Text><strong>Select Synonyms</strong></Text>
@@ -182,21 +195,13 @@ export function App() {
                   ))}
                 </div>
 
-                {(selectedSynonyms.length > 0 || previewText.trim()) && (
+                {selectedSynonyms && selectedSynonyms.length > 0 && (
                   <Fragment>
-                    <VerticalSpace space="medium" />
-                    <Text><strong>Preview:</strong></Text>
-                    <VerticalSpace space="small" />
-                    <Textbox
-                      onValueInput={value => setPreviewText(value)}
-                      value={previewText}
-                      placeholder="Selected synonyms will appear here"
-                    />
                     <VerticalSpace space="medium" />
                     <Button 
                       fullWidth 
                       onClick={handleApplySelected}
-                      disabled={!previewText.trim() && selectedSynonyms.length === 0}
+                      disabled={!descriptionText || !descriptionText.trim()}
                     >
                       Add to Description
                     </Button>
