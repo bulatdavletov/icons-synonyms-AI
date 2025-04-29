@@ -9,6 +9,7 @@
     - toolwindow / ant@14x14
 
 - Find similar named or descripted icons, and copy show their description.
+- Check name and description of mods inside.
 
 - Add regenerate button to one icon card
 
