@@ -8,6 +8,8 @@
     - toolwindow / ant@20x20
     - toolwindow / ant@14x14
 
+- Find similar named or descripted icons, and copy show their description.
+
 - Add regenerate button to one icon card
 
 - Generate is for all selected components, apply is for current component
