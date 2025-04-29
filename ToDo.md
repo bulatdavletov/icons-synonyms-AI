@@ -22,3 +22,6 @@ Similar Icons:
 - [ ] Find similar named or descripted icons, and copy show their description
 How? Should we have list of all icons with descriptions?
 - [ ] Check name and description of mods inside
+
+Chores:
+- remove code from ui.html and leave a coment that ui.tsx should be used instead
