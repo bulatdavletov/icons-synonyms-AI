@@ -14,11 +14,23 @@ export interface SynonymGroup {
   synonyms: string[]
 }
 
+// Interface for variant description
+export interface VariantDescription {
+  name: string
+  description: string
+  hasDescription: boolean
+}
+
 export interface ComponentInfo {
   name: string
   type: string
   description: string
   hasDescription: boolean
+  relatedVariants?: {
+    names: string[]
+    count: number
+    descriptions?: VariantDescription[]
+  }
 }
 
 export interface Handler {
@@ -26,7 +38,12 @@ export interface Handler {
   'generate-synonyms': () => void
   'synonyms-generated': (data: { synonyms: string[] }) => void
   'generate-error': (data: { error: string }) => void
-  'update-description': (data: { synonyms: string[] }) => void
+  'update-description': (data: { 
+    synonyms?: string[], 
+    rawDescription?: string, 
+    isManualEdit?: boolean,
+    updateAllVariants?: boolean 
+  }) => void
 }
 
 export type HandlerEvent<K extends keyof Handler> = {

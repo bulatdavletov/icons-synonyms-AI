@@ -17,10 +17,14 @@ export function App() {
   const [selectedSynonyms, setSelectedSynonyms] = useState<string[]>([])
   const [newlySelectedSynonyms, setNewlySelectedSynonyms] = useState<string[]>([])
   const [descriptionText, setDescriptionText] = useState<string>('')
+  const [updateAllVariants, setUpdateAllVariants] = useState<boolean>(true)
 
   useEffect(() => {
     // Listen for selection changes
     on('selection-change', (data: ComponentInfoType) => {
+      console.log('Received selection-change event with data:', JSON.stringify(data, null, 2));
+      console.log('Related variants in selection-change:', data.relatedVariants);
+      
       setComponentInfo(data)
       setDescriptionText(data.description || '')
       setError(null)
@@ -69,10 +73,12 @@ export function App() {
   }, [selectedSynonyms, synonyms])
 
   const handleTabChange = (newTab: string) => {
+    console.log('[USER ACTION] Tab changed to:', newTab);
     setActiveTab(newTab)
   }
 
   const handleGenerateSynonyms = () => {
+    console.log('[USER ACTION] Generate Synonyms button clicked');
     setLoading(true)
     setError(null)
     setSynonyms([])
@@ -82,12 +88,16 @@ export function App() {
   const handleSynonymClick = (synonym: string) => {
     if (!synonym) return
     
+    console.log('[USER ACTION] Synonym clicked:', synonym);
+    
     setSelectedSynonyms(prev => {
       const prevArray = Array.isArray(prev) ? prev : []
       const isSelected = prevArray.includes(synonym)
       const newSynonyms = isSelected
         ? prevArray.filter(s => s !== synonym)
         : [...prevArray, synonym]
+      
+      console.log('[USER ACTION] Synonyms selection updated:', newSynonyms);
       
       // When adding a new synonym, add it to the newly selected array
       if (!isSelected) {
@@ -106,34 +116,44 @@ export function App() {
   }
 
   const handleDescriptionChange = (value: string) => {
+    console.log('[USER ACTION] Description text changed');
     setDescriptionText(value || '')
+  }
+
+  const handleUpdateAllVariantsChange = (value: boolean) => {
+    console.log('[USER ACTION] Update all variants setting changed:', value);
+    setUpdateAllVariants(value);
   }
 
   const handleApplySelected = () => {
     try {
-      console.log('Save Description button clicked');
-      console.log('Current description text:', descriptionText);
+      console.log('[USER ACTION] Save Description button clicked');
+      console.log('[USER ACTION] Current description text:', descriptionText);
+      console.log('[USER ACTION] Selected synonyms:', selectedSynonyms);
+      console.log('[USER ACTION] Update all variants:', updateAllVariants);
       
       // If we have selected synonyms, use those; otherwise, send the raw description text
       if (selectedSynonyms.length > 0) {
-        console.log('Emitting update-description with selectedSynonyms:', selectedSynonyms);
+        console.log('[USER ACTION] Saving with selected synonyms');
         emit('update-description', { 
           synonyms: selectedSynonyms,
-          isManualEdit: false
+          isManualEdit: false,
+          updateAllVariants: updateAllVariants // Use the value from state
         });
       } else {
         // If no synonyms selected but we have edited the description text manually
-        console.log('Emitting update-description with raw description');
+        console.log('[USER ACTION] Saving with manual description edit');
         emit('update-description', { 
           rawDescription: descriptionText || '',
-          isManualEdit: true
+          isManualEdit: true,
+          updateAllVariants: updateAllVariants // Use the value from state
         });
       }
       
       setSelectedSynonyms([]);
       setNewlySelectedSynonyms([]);
     } catch (error) {
-      console.error('Error applying selected synonyms:', error);
+      console.error('[ERROR] Error applying selected synonyms:', error);
     }
   }
 
@@ -180,6 +200,9 @@ export function App() {
                 hasDescription={componentInfo.hasDescription}
                 selectedSynonyms={newlySelectedSynonyms}
                 onDescriptionChange={handleDescriptionChange}
+                relatedVariants={componentInfo.relatedVariants}
+                updateAllVariants={updateAllVariants}
+                onUpdateAllVariantsChange={handleUpdateAllVariantsChange}
               />
             )}
 
@@ -224,10 +247,27 @@ export function App() {
                       fullWidth 
                       onClick={handleApplySelected}
                     >
-                      Save Description
+                      {componentInfo?.relatedVariants && componentInfo.relatedVariants.count > 1 && updateAllVariants 
+                        ? `Save to all ${componentInfo.relatedVariants.count} components` 
+                        : 'Save Description'}
                     </Button>
                   </Fragment>
                 )}
+              </Fragment>
+            )}
+
+            {/* Add a save button that appears when description is changed but no synonyms are selected */}
+            {componentInfo && descriptionText !== componentInfo.description && !selectedSynonyms.length && (
+              <Fragment>
+                <VerticalSpace space="medium" />
+                <Button 
+                  fullWidth 
+                  onClick={handleApplySelected}
+                >
+                  {componentInfo.relatedVariants && componentInfo.relatedVariants.count > 1 && updateAllVariants 
+                    ? `Save to all ${componentInfo.relatedVariants.count} components` 
+                    : 'Save Description'}
+                </Button>
               </Fragment>
             )}
           </div>
