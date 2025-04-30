@@ -1,18 +1,11 @@
 import { h, Fragment } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { Container, Text, VerticalSpace, IconButton, Button, IconSettingsSmall24, IconNavigateBack24, Tabs } from '@create-figma-plugin/ui'
-import type { JSX } from 'preact'
-import { SingleMode } from './single/SingleMode'
-import { BatchMode } from './batch/BatchMode'
-import { Settings } from './Settings'
-import type { ComponentInfo as ComponentInfoType } from '../types/index'
+import { Text, VerticalSpace, Button } from '@create-figma-plugin/ui'
+import { ComponentInfo } from '../ComponentInfo'
+import type { ComponentInfo as ComponentInfoType } from '../../types/index'
 
-export function App() {
-  const [activeTab, setActiveTab] = useState<string>('main')
-  // Mode state: 'single' or 'batch'
-  const [mode, setMode] = useState<'single' | 'batch'>('single')
-  // Clean up the unused states that were moved to SingleMode
+export function SingleMode() {
   const [componentInfo, setComponentInfo] = useState<ComponentInfoType | null>(null)
   const [synonyms, setSynonyms] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -72,10 +65,6 @@ export function App() {
     })
   }, [selectedSynonyms, synonyms])
 
-  const handleTabChange = (newTab: string) => {
-    setActiveTab(newTab)
-  }
-
   const handleGenerateSynonyms = () => {
     setLoading(true)
     setError(null)
@@ -87,62 +76,46 @@ export function App() {
     setDescriptionText(value || '')
   }
 
-  const handleModeChange = (event: JSX.TargetedEvent<HTMLInputElement>) => {
-    const value = event.currentTarget.value as 'single' | 'batch'
-    setMode(value)
-  }
-
   return (
-    <Container space="medium">
-      <VerticalSpace space="medium" />
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {activeTab === 'settings' && (
-          <IconButton onClick={() => handleTabChange('main')}>
-            <IconNavigateBack24 />
-          </IconButton>
+    <Fragment>
+      {/* Content container with padding at the bottom to make room for fixed button */}
+      <div style={{ paddingBottom: '60px' }}>
+        {error && (
+          <Fragment>
+            <Text style={{ color: 'var(--figma-color-text-danger)' }}>{error}</Text>
+            <VerticalSpace space="medium" />
+          </Fragment>
         )}
-        {activeTab === 'main' && (
-          <div style={{ width: 28 }}></div> // Empty space for layout balance
-        )}
-        
-        <Text>
-          <strong>{activeTab === 'main' ? 'Icon Synonyms' : 'Settings'}</strong>
-        </Text>
-        
-        {activeTab === 'main' ? (
-          <IconButton onClick={() => handleTabChange('settings')}>
-            <IconSettingsSmall24 />
-          </IconButton>
-        ) : (
-          <div style={{ width: 28 }}></div> // Empty space for layout balance
+
+        {componentInfo && (
+          <ComponentInfo
+            name={componentInfo.name}
+            type={componentInfo.type}
+            description={componentInfo.description}
+            hasDescription={componentInfo.hasDescription}
+            selectedSynonyms={newlySelectedSynonyms}
+            onDescriptionChange={handleDescriptionChange}
+            generatedSynonyms={synonyms}
+            isGeneratingSynonyms={loading}
+          />
         )}
       </div>
-      
-      <VerticalSpace space="medium" />
 
-      {activeTab === 'main' ? (
-        <Fragment>
-          <Tabs
-            value={mode}
-            onChange={handleModeChange}
-            options={[
-              { value: 'single', children: 'Single' },
-              { value: 'batch', children: 'Batch' }
-            ]}
-          />
-          
-          <VerticalSpace space="small" />
-          
-          {mode === 'single' ? (
-            <SingleMode />
-          ) : (
-            <BatchMode />
-          )}
-        </Fragment>
-      ) : (
-        <Settings />
-      )}
-    </Container>
+      {/* Fixed button at the bottom */}
+      <div style={{ 
+        position: 'fixed', 
+        bottom: 0, 
+        left: 0, 
+        width: '100%', 
+        padding: '16px 16px',
+        backgroundColor: 'var(--figma-color-bg)',
+        boxShadow: '0 -1px 2px rgba(0, 0, 0, 0.1)',
+        zIndex: 100
+      }}>
+        <Button fullWidth onClick={handleGenerateSynonyms} disabled={loading || !componentInfo}>
+          {loading ? 'Generating...' : 'Generate Synonyms'}
+        </Button>
+      </div>
+    </Fragment>
   )
 } 
