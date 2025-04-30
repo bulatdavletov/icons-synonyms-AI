@@ -272,7 +272,7 @@ export default function () {
       console.log('Text to update before calling updateComponentDescription:', textToUpdate);
       
       // Even if textToUpdate is empty, we'll still process it - allow clearing descriptions
-      const success = updateComponentDescription(textToUpdate);
+      const success = updateComponentDescription(textToUpdate, data.isManualEdit);
       console.log('updateComponentDescription result:', success);
     
       if (success) {
@@ -344,8 +344,8 @@ export default function () {
   });
 
   // Add this function somewhere in the main.ts file
-  function updateComponentDescription(newSynonyms: string): boolean {
-    console.log('updateComponentDescription called with:', newSynonyms);
+  function updateComponentDescription(newSynonyms: string, isManualEdit: boolean = false): boolean {
+    console.log('updateComponentDescription called with:', newSynonyms, 'isManualEdit:', isManualEdit);
     
     // Allow empty strings to clear the description
     if (newSynonyms === undefined || newSynonyms === null) {
@@ -384,9 +384,15 @@ export default function () {
         fullDescription = '';
         console.log('Using empty description');
       } else {
-        // Use the new synonyms directly (replacing previous description)
-        fullDescription = newSynonyms;
-        console.log('Using new synonyms as description');
+        // For manual edits, always use the raw input text as is
+        if (isManualEdit) {
+          fullDescription = newSynonyms;
+          console.log('Using manual edit text as description');
+        } else {
+          // Use the new synonyms directly (replacing previous description)
+          fullDescription = newSynonyms;
+          console.log('Using new synonyms as description');
+        }
       }
       
       console.log('Full description to set:', fullDescription);
