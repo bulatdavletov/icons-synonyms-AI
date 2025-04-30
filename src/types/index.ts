@@ -35,14 +35,12 @@ export interface ComponentWithSynonyms extends ComponentInfo {
 export type ComponentsMap = Map<string, ComponentWithSynonyms>
 
 export interface Handler {
-  'selection-change': (componentInfo: ComponentInfo) => void
-  'batch-selection-change': (components: ComponentInfo[]) => void
-  'generate-synonyms': () => void
-  'generate-batch-synonyms': (componentIds: string[]) => void
+  'selection-change': (components: ComponentInfo[]) => void
+  'generate-synonyms': (componentIds: string[]) => void
   'synonyms-generated': (data: { synonyms: string[], componentId?: string }) => void
   'generate-error': (data: { error: string, componentId?: string }) => void
   'update-description': (data: { synonyms: string[] }) => void
-  'description-updated': (data: { description: string, hasDescription: boolean }) => void
+  'description-updated': (data: { description: string, hasDescription: boolean, componentId?: string }) => void
   'get-current-synonyms': () => void
   'current-synonyms-response': (data: { synonyms: string[] }) => void
 }

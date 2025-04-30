@@ -2,14 +2,10 @@ import { emit, on, showUI } from '@create-figma-plugin/utilities'
 import { exportNodeAsBase64, getBestNodeToExport } from './utils/icon-exporter'
 import { generateSynonyms } from './services/ai-service'
 import { ComponentInfo, Handler } from './types/index'
-import { DEFAULT_SYSTEM_MESSAGE, DEFAULT_USER_PROMPT } from '../prompt'
 
 const STORAGE_KEY = 'openai-api-key'
 const SYSTEM_MESSAGE_KEY = 'icon-synonyms-system-message'
 const USER_PROMPT_KEY = 'icon-synonyms-user-prompt'
-
-// Keep track of whether we're in batch mode
-let isBatchMode = false
 
 /**
  * Processes synonyms into a flat list
@@ -57,10 +53,11 @@ export default function () {
   function sendSelectionToUI() {
     const selection = figma.currentPage.selection
     
-    if (selection.length === 1) {
-      // Single selection mode
-      const node = selection[0]
+    // Process selection as batch
+    const components: ComponentInfo[] = []
       
+    // Process each selected node
+    selection.forEach(node => {
       if (node.type === "COMPONENT" || node.type === "COMPONENT_SET" || node.type === "INSTANCE") {
         const hasDescription = Boolean(
           node.type === "INSTANCE" 
@@ -80,43 +77,12 @@ export default function () {
           hasDescription
         }
         
-        emit('selection-change', componentInfo)
-        isBatchMode = false
+        components.push(componentInfo)
       }
-    } else if (selection.length > 1) {
-      // Batch selection mode
-      const components: ComponentInfo[] = []
-      
-      // Process each selected node
-      selection.forEach(node => {
-        if (node.type === "COMPONENT" || node.type === "COMPONENT_SET" || node.type === "INSTANCE") {
-          const hasDescription = Boolean(
-            node.type === "INSTANCE" 
-              ? node.mainComponent?.description 
-              : node.description
-          )
-          
-          const description = node.type === "INSTANCE"
-            ? node.mainComponent?.description || ""
-            : node.description || ""
-          
-          const componentInfo: ComponentInfo = {
-            id: node.id,
-            name: node.name,
-            type: node.type,
-            description,
-            hasDescription
-          }
-          
-          components.push(componentInfo)
-        }
-      })
-      
-      if (components.length > 0) {
-        emit('batch-selection-change', components)
-        isBatchMode = true
-      }
-    }
+    })
+    
+    // Send components to UI
+    emit('selection-change', components)
   }
 
   // Handle API key requests
@@ -158,20 +124,20 @@ export default function () {
   on('get-prompt-templates', async () => {
     try {
       // Get prompt templates from client storage
-      const systemMessage = await figma.clientStorage.getAsync(SYSTEM_MESSAGE_KEY) || DEFAULT_SYSTEM_MESSAGE
-      const userPrompt = await figma.clientStorage.getAsync(USER_PROMPT_KEY) || DEFAULT_USER_PROMPT
+      const systemMessage = await figma.clientStorage.getAsync(SYSTEM_MESSAGE_KEY)
+      const userPrompt = await figma.clientStorage.getAsync(USER_PROMPT_KEY)
       
       emit('prompt-templates-response', { 
-        systemMessage, 
-        userPrompt,
-        isDefault: systemMessage === DEFAULT_SYSTEM_MESSAGE && userPrompt === DEFAULT_USER_PROMPT
+        systemMessage: systemMessage || '', 
+        userPrompt: userPrompt || '',
+        isDefault: false
       })
     } catch (error) {
       console.error('Error retrieving prompt templates:', error)
       emit('prompt-templates-response', { 
-        systemMessage: DEFAULT_SYSTEM_MESSAGE, 
-        userPrompt: DEFAULT_USER_PROMPT,
-        isDefault: true
+        systemMessage: '', 
+        userPrompt: '',
+        isDefault: false
       })
     }
   })
@@ -200,12 +166,12 @@ export default function () {
   on('reset-prompt-templates', async () => {
     try {
       // Reset to default templates
-      await figma.clientStorage.setAsync(SYSTEM_MESSAGE_KEY, DEFAULT_SYSTEM_MESSAGE)
-      await figma.clientStorage.setAsync(USER_PROMPT_KEY, DEFAULT_USER_PROMPT)
+      await figma.clientStorage.setAsync(SYSTEM_MESSAGE_KEY, '')
+      await figma.clientStorage.setAsync(USER_PROMPT_KEY, '')
       
       emit('prompt-templates-response', { 
-        systemMessage: DEFAULT_SYSTEM_MESSAGE, 
-        userPrompt: DEFAULT_USER_PROMPT,
+        systemMessage: '', 
+        userPrompt: '',
         isDefault: true
       })
       
@@ -248,12 +214,9 @@ export default function () {
       let name = node.name
       let description = ''
       
-      if (node.type === 'COMPONENT') {
-        description = node.description || ''
-      } else if (node.type === 'INSTANCE' && node.mainComponent) {
-        description = node.mainComponent.description || ''
-      } else if (node.type === 'COMPONENT_SET') {
-        // For component sets, we can use the description directly
+      if (node.type === "INSTANCE") {
+        description = node.mainComponent?.description || ''
+      } else {
         description = node.description || ''
       }
       
@@ -266,206 +229,116 @@ export default function () {
       })
       
       if (result.error) {
-        emit('generate-error', { 
+        emit('generate-error', {
           error: result.error,
-          componentId: nodeId 
+          componentId: nodeId
         })
         return
       }
       
-      // Process synonyms into a flat list
-      const synonymsList = processSynonyms(result.synonyms)
+      // Process synonyms from AI service
+      const processedSynonyms = processSynonyms(result.synonyms)
       
-      // Emit the synonyms with the component ID
+      // Send generated synonyms to UI
       emit('synonyms-generated', { 
-        synonyms: synonymsList,
+        synonyms: processedSynonyms,
         componentId: nodeId
       })
-      
     } catch (error: any) {
       console.error('Error processing component:', error)
+      
       emit('generate-error', {
-        error: error.message || 'Unknown error occurred',
+        error: error.message || 'Failed to generate synonyms',
         componentId: nodeId
       })
     }
   }
 
-  // Handle messages from the UI
-  on('generate-synonyms', async () => {
+  // Handle generate-synonyms request
+  on('generate-synonyms', async (componentIds: string[]) => {
     try {
-      // Get API key from storage
-      const apiKey = await figma.clientStorage.getAsync(STORAGE_KEY)
-      
-      if (!apiKey) {
-        emit('generate-error', {
-          error: 'API key not found. Please set your OpenAI API key in the Settings tab.'
-        })
-        return
-      }
-      
-      // Get the current selection
-      const selection = figma.currentPage.selection
-      
-      // Find the best node to export
-      const nodeToExport = getBestNodeToExport(selection)
-      
-      if (!nodeToExport) {
-        emit('generate-error', {
-          error: 'No valid icon selected'
-        })
-        return
-      }
-      
-      // Export the node as base64
-      const imageBase64 = await exportNodeAsBase64(nodeToExport)
-      
-      // Get the node name and description
-      let name = nodeToExport.name
-      let description = ''
-      
-      if (nodeToExport.type === 'COMPONENT') {
-        description = nodeToExport.description || ''
-      } else if (nodeToExport.type === 'INSTANCE' && nodeToExport.mainComponent) {
-        description = nodeToExport.mainComponent.description || ''
-      }
-      
-      // Generate synonyms using the AI service
-      const result = await generateSynonyms({
-        name,
-        imageBase64,
-        existingDescription: description,
-        apiKey
-      })
-      
-      if (result.error) {
-        emit('generate-error', { error: result.error })
-        return
-      }
-      
-      // Process synonyms into a flat list
-      const synonymsList = processSynonyms(result.synonyms)
-      
-      emit('synonyms-generated', { synonyms: synonymsList })
-      
-    } catch (error: any) {
-      console.error('Error in generate-synonyms handler:', error)
-      emit('generate-error', {
-        error: error.message || 'Unknown error occurred'
-      })
-      figma.notify("Error generating synonyms")
-    }
-  })
-
-  // Handle batch generation of synonyms
-  on('generate-batch-synonyms', async (componentIds: string[]) => {
-    try {
-      // Process components sequentially to avoid rate limiting issues
+      // Process each component in sequence
       for (const componentId of componentIds) {
         await processSingleComponent(componentId)
       }
     } catch (error: any) {
-      console.error('Error in batch-generate-synonyms handler:', error)
-      emit('generate-error', {
-        error: error.message || 'Unknown error occurred during batch processing'
+      console.error('Error in generate-synonyms handler:', error)
+      emit('generate-error', { 
+        error: error.message || 'Unknown error occurred during processing'
       })
     }
   })
 
-  // Then update the 'update-description' handler:
-  on('update-description', (data: { 
+  // Handle description updates
+  on('update-description', async (data: { 
     synonyms?: string[], 
     rawDescription?: string, 
     isManualEdit?: boolean,
-    componentId?: string 
+    componentId?: string,
+    description?: string
   }) => {
     try {
+      // Batch mode: Update a specific component
       if (data.componentId) {
-        // Batch mode: Update a specific component
         const node = figma.getNodeById(data.componentId)
         
         if (!node || (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET')) {
-          console.error('Node not found or not a component/component set')
+          emit('generate-error', { error: 'Component not found or not a valid component' })
           return
         }
         
-        let newDescription: string
+        const description = data.description || data.rawDescription || (data.synonyms ? data.synonyms.join(', ') : '')
+        updateDescription(node, description)
         
-        if (data.rawDescription) {
-          // If raw description is provided, use it directly
-          newDescription = data.rawDescription
-        } else if (data.synonyms && data.synonyms.length > 0) {
-          // Otherwise, use synonyms if available
-          newDescription = data.synonyms.join(', ')
-        } else {
-          // No valid description data
-          return
-        }
-        
-        // Update the node description
-        updateDescription(node, newDescription)
-        
-        // Let the UI know the description was updated
-        emit('description-updated', {
-          description: newDescription,
+        emit('description-updated', { 
+          description: description, 
           hasDescription: true,
           componentId: data.componentId
         })
-      } else {
-        // Single mode: Use the current selection
-        // For backward compatibility with the original implementatio
-        updateComponentDescription(
-          data.rawDescription || (data.synonyms ? data.synonyms.join(', ') : ''),
-          !!data.isManualEdit
-        )
+        
+        return
+      }
+      
+      // No component ID specified, use the selection
+      const selection = figma.currentPage.selection
+      
+      if (selection.length === 0) {
+        emit('generate-error', { error: 'No component selected' })
+        return
+      }
+      
+      // We only allow batch mode, so update all selected components
+      let hasUpdatedAny = false
+      const description = data.description || data.rawDescription || (data.synonyms ? data.synonyms.join(', ') : '')
+      
+      for (const node of selection) {
+        if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
+          updateDescription(node, description)
+          
+          emit('description-updated', { 
+            description: description, 
+            hasDescription: true,
+            componentId: node.id
+          })
+          
+          hasUpdatedAny = true
+        }
+      }
+      
+      if (!hasUpdatedAny) {
+        emit('generate-error', { error: 'No valid components to update' })
       }
     } catch (error: any) {
       console.error('Error updating description:', error)
+      emit('generate-error', { error: error.message || 'Failed to update description' })
     }
   })
 
-  function updateComponentDescription(newSynonyms: string, isManualEdit: boolean = false): boolean {
-    const selection = figma.currentPage.selection
-    
-    if (selection.length !== 1) {
-      return false
-    }
-    
-    const node = selection[0]
-    
-    if (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET' && node.type !== 'INSTANCE') {
-      return false
-    }
-    
-    let targetNode: ComponentNode | ComponentSetNode | null = null
-    
-    if (node.type === 'INSTANCE' && node.mainComponent) {
-      targetNode = node.mainComponent
-    } else if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
-      targetNode = node
-    }
-    
-    if (!targetNode) {
-      return false
-    }
-    
-    // Update the description
-    targetNode.description = newSynonyms
-    
-    // Emit an event to notify the UI that the description was updated
-    emit('description-updated', {
-      description: newSynonyms,
-      hasDescription: true
-    })
-    
-    return true
-  }
-
-  // Initial send of selection to UI
-  sendSelectionToUI()
-
-  // Listen for selection changes in Figma
+  // Handle UI events
   figma.on('selectionchange', () => {
     sendSelectionToUI()
   })
+
+  // Send initial selection to UI
+  sendSelectionToUI()
 } 

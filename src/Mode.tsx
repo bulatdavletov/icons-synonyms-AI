@@ -2,20 +2,20 @@ import { h, Fragment } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { Text, VerticalSpace, Button, Textbox, IconWarningSmall24, Divider, Stack, LoadingIndicator } from '@create-figma-plugin/ui'
-import { BatchComponentCard } from './BatchComponentCard'
-import type { ComponentInfo, ComponentWithSynonyms, ComponentsMap } from '../../types'
+import { ComponentCard } from './ComponentCard'
+import type { ComponentInfo, ComponentWithSynonyms, ComponentsMap } from './types'
 
-export function BatchMode() {
+export function Mode() {
   const [components, setComponents] = useState<ComponentWithSynonyms[]>([])
   const [componentsMap, setComponentsMap] = useState<ComponentsMap>(new Map())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
 
-  // Handle batch selection and component data management
+  // Handle selection and component data management
   useEffect(() => {
-    // Listen for batch selection changes
-    const handleBatchSelectionChange = (data: ComponentInfo[]) => {
+    // Listen for selection changes
+    const handleSelectionChange = (data: ComponentInfo[]) => {
       if (!data || data.length === 0) {
         return
       }
@@ -162,21 +162,10 @@ export function BatchMode() {
     }
 
     // Register event listeners
-    on('batch-selection-change', handleBatchSelectionChange)
+    on('selection-change', handleSelectionChange)
     on('synonyms-generated', handleSynonymsGenerated)
     on('generate-error', handleGenerationError)
     on('description-updated', handleDescriptionUpdated)
-
-    // For development/testing: simulate a batch selection if needed
-    // Uncomment this for testing without actual Figma selection events
-    /*
-    if (!isInitialized) {
-      handleBatchSelectionChange([
-        { id: '1', name: 'Test Component 1', type: 'COMPONENT', description: 'Test description 1', hasDescription: true },
-        { id: '2', name: 'Test Component 2', type: 'COMPONENT', description: 'Test description 2', hasDescription: true }
-      ])
-    }
-    */
 
     return () => {
       // Clean up event listeners if needed
@@ -211,10 +200,10 @@ export function BatchMode() {
     )
     
     // Emit event to generate synonyms for this specific component
-    emit('generate-batch-synonyms', [componentId])
+    emit('generate-synonyms', [componentId])
   }
 
-  const handleGenerateBatchSynonyms = () => {
+  const handleGenerateSynonyms = () => {
     // Mark all components as loading
     const updatedMap = new Map(componentsMap)
     let anyComponentsToUpdate = false
@@ -248,7 +237,7 @@ export function BatchMode() {
     setError(null)
     
     // Emit event to generate synonyms for all components
-    emit('generate-batch-synonyms', Array.from(updatedMap.keys()))
+    emit('generate-synonyms', Array.from(updatedMap.keys()))
   }
 
   const handleDescriptionChange = (description: string, componentId: string) => {
@@ -278,7 +267,7 @@ export function BatchMode() {
           </Text>
           <VerticalSpace space="small" />
           <Text align="center">
-            Please select multiple components in Figma to use batch mode.
+            Please select one or more components in Figma.
           </Text>
         </div>
       </Fragment>
@@ -304,7 +293,7 @@ export function BatchMode() {
 
         {/* Component cards */}
         {components.map((component, index) => (
-          <BatchComponentCard
+          <ComponentCard
             key={component.id}
             component={component}
             onRegenerateSynonyms={handleRegenerateSynonyms}
@@ -325,8 +314,13 @@ export function BatchMode() {
         boxShadow: '0 -1px 2px rgba(0, 0, 0, 0.1)',
         zIndex: 100
       }}>
-        <Button fullWidth onClick={handleGenerateBatchSynonyms} disabled={loading || components.length === 0}>
-          {loading ? 'Generating...' : `Generate Synonyms for All (${components.length})`}
+        <Button fullWidth onClick={handleGenerateSynonyms} disabled={loading || components.length === 0}>
+          {loading 
+            ? 'Generating...' 
+            : components.length === 1 
+              ? 'Generate Synonyms' 
+              : `Generate Synonyms for All (${components.length})`
+          }
         </Button>
       </div>
     </Fragment>

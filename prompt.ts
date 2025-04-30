@@ -10,14 +10,14 @@ export const DEFAULT_SYSTEM_MESSAGE = `
 export const DEFAULT_USER_PROMPT = `
   Look at the icon and generate a list of relevant keywords, separated by commas. Include:
 
-- [Required] First sentence:Description of what the icon shows without commas (e.g., "folder with blue gear")
+- [Required] First item: Description of what the icon shows without commas (e.g., "folder with blue gear")
     - Don't separate words here, just describe the icon as a whole (e.g., "folder with blue gear" instead of "folder, blue, gear")
     - Use numbers instead of words in counts (e.g., "2 squares" instead of "two squares")
     - Don't use words like "icon", "symbol", "image", "outline", because they are not relevant to the icon's purpose
     - Always describe color, if it's other than gray (e.g. "folder with blue gear"). Don't add grey as a color, because all icons are gray by default.
     - Always describe direction of arrows (e.g., "arrow down with bracket")
 
-- [Optional] Other sentences: What the icon is typically used for in UI (e.g., "settings", "delete", "add")
+- [Optional] Other items: What the icon is typically used for in UI (e.g., "settings", "delete", "add")
 `;
 
 /**
