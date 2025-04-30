@@ -1,5 +1,11 @@
 # Implementation Plan for Batch Processing Feature
 
+## Phase 0: Split plugin to two tabs - Single selection and Batch selection
+Create Tab to work with one file and second tab to work with multiple selections.
+I want always to have working plugin.
+Currently I have version that works with one file, it should stay.
+Batch selection files also should use different files, so not broke existing functionality of single selection.
+
 ## Phase 1: Core Functionality and Data Management
 
 ### Update Data Structure
