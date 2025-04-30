@@ -1,7 +1,17 @@
 import { h } from 'preact'
 import { useState, useEffect, useRef } from 'preact/hooks'
-import { Text, Stack, VerticalSpace, TextboxMultiline, Button } from '@create-figma-plugin/ui'
-import { emit } from '@create-figma-plugin/utilities'
+import { emit, on } from '@create-figma-plugin/utilities'
+
+import { 
+  Text, 
+  Stack, 
+  VerticalSpace, 
+  TextboxMultiline, 
+  Button, 
+  Layer, 
+  IconComponent16, 
+  Inline
+} from '@create-figma-plugin/ui'
 
 interface Props {
   name?: string
@@ -10,6 +20,8 @@ interface Props {
   hasDescription?: boolean
   selectedSynonyms?: string[]
   onDescriptionChange?: (description: string) => void
+  generatedSynonyms?: string[]
+  isGeneratingSynonyms?: boolean
 }
 
 export function ComponentInfo({ 
@@ -18,11 +30,14 @@ export function ComponentInfo({
   description = 'No component selected',
   hasDescription = false,
   selectedSynonyms = [],
-  onDescriptionChange
+  onDescriptionChange,
+  generatedSynonyms = [],
+  isGeneratingSynonyms = false
 }: Props) {
   const [editedDescription, setEditedDescription] = useState(description)
   const [hasPendingChanges, setHasPendingChanges] = useState(false)
   const processedSynonyms = useRef<string[]>([])
+  const [localSelectedSynonyms, setLocalSelectedSynonyms] = useState<string[]>([])
   
   console.log('ComponentInfo rendered with description:', description);
   
@@ -76,11 +91,18 @@ export function ComponentInfo({
     processedSynonyms.current = []
   }, [description])
   
+  // Update UI whenever hasPendingChanges changes
+  useEffect(() => {
+    console.log('hasPendingChanges updated:', hasPendingChanges);
+  }, [hasPendingChanges]);
+
   const handleDescriptionChange = (value: string) => {
     console.log('handleDescriptionChange called with value:', value);
     setEditedDescription(value);
-    setHasPendingChanges(value !== description);
-    console.log('hasPendingChanges set to:', value !== description);
+    // Always set hasPendingChanges when the value is different from the original description
+    const hasChanges = value !== description;
+    setHasPendingChanges(hasChanges);
+    console.log('hasPendingChanges set to:', hasChanges);
     
     // Notify parent if callback provided - always call this to keep parent state in sync
     if (onDescriptionChange) {
@@ -98,20 +120,85 @@ export function ComponentInfo({
         isManualEdit: true
       })
       setHasPendingChanges(false)
+      // Reset selected synonyms after saving
+      setLocalSelectedSynonyms([])
+    }
+  }
+  
+  const handleCancel = () => {
+    setEditedDescription(description || '')
+    setHasPendingChanges(false)
+    // Reset selected synonyms on cancel
+    setLocalSelectedSynonyms([])
+  }
+
+  const handleSynonymClick = (synonym: string) => {
+    if (!synonym) return
+    
+    // Toggle the synonym in the localSelectedSynonyms array
+    setLocalSelectedSynonyms(prev => {
+      const isSelected = prev.includes(synonym)
+      if (isSelected) {
+        return prev.filter(s => s !== synonym)
+      } else {
+        // For a new selection, add the synonym to the description text
+        addSynonymToDescription(synonym)
+        return [...prev, synonym]
+      }
+    })
+
+    // Mark that we have pending changes when synonyms are selected
+    setHasPendingChanges(true)
+  }
+
+  // Helper function to add a synonym to the description
+  const addSynonymToDescription = (synonym: string) => {
+    let newDescription: string;
+    
+    // Add the synonym to the description text
+    if (!editedDescription || editedDescription.trim() === '') {
+      // If description is empty, just use the new synonym
+      newDescription = synonym;
+      setEditedDescription(newDescription);
+    } else {
+      // Add to existing text with comma
+      const currentText = editedDescription.trim()
+      const lastChar = currentText.slice(-1)
+      const separator = (lastChar === ',' || lastChar === '') ? ' ' : ', '
+      newDescription = currentText + separator + synonym;
+      setEditedDescription(newDescription);
+    }
+
+    // Notify parent component of the change if needed
+    if (onDescriptionChange) {
+      onDescriptionChange(newDescription);
+    }
+  }
+  
+  const handleApplySynonyms = () => {
+    if (localSelectedSynonyms.length > 0) {
+      emit('update-description', { 
+        synonyms: localSelectedSynonyms,
+        isManualEdit: false
+      })
+      
+      // Reset selected synonyms after applying
+      setLocalSelectedSynonyms([])
+      setHasPendingChanges(false)
     }
   }
   
   return (
     <div class="component-info">
       <Stack space="small">
-        <Text>
+        <Layer component value={false} icon={<IconComponent16 />} onChange={() => {}}>
           <strong>{name}</strong>
-        </Text>
+        </Layer>
         
         {type === '' ? (
-        <Text>
+        <Layer component value={false} icon={<IconComponent16 />} onChange={() => {}}>
             <em>No component selected</em>
-          </Text>
+          </Layer>
         ) : (
           <Stack space="extraSmall">
             <TextboxMultiline
@@ -121,6 +208,47 @@ export function ComponentInfo({
               style={{ width: '100%', minHeight: '80px' }}
               rows={4}
             />
+            
+            {/* Synonyms UI */}
+            {generatedSynonyms && generatedSynonyms.length > 0 && (
+              <Stack space="extraSmall">
+                <Text><strong>Select Synonyms</strong></Text>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                  {generatedSynonyms.map((synonym, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: localSelectedSynonyms.includes(synonym)
+                          ? 'var(--figma-color-bg-selected)'
+                          : 'var(--figma-color-bg-secondary)',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSynonymClick(synonym)}
+                    >
+                      <Text>{synonym}</Text>
+                    </div>
+                  ))}
+                </div>
+              </Stack>
+            )}
+            
+            {/* Save/Cancel buttons - only show when there are pending changes */}
+            {hasPendingChanges && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ flex: '2' }}>
+                  <Button fullWidth onClick={localSelectedSynonyms.length > 0 ? handleApplySynonyms : handleSave}>
+                    Save
+                  </Button>
+                </div>
+                <div style={{ flex: '1' }}>
+                  <Button fullWidth onClick={handleCancel} secondary>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </Stack>
         )}
       </Stack>

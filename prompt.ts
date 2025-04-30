@@ -8,15 +8,13 @@ Format your response as a simple comma-separated list in lowercase without bulle
 export const DEFAULT_USER_PROMPT = `Look at the icon and generate a list of relevant keywords, separated by commas. Include:
 
 - [Required] Description of what the icon shows (e.g., "folder with blue gear")
-- What the icon is typically used for (e.g., "settings", "delete", "add")
-- All separate objects visible in the icon (e.g., "folder, gear, lock, arrow down")
-- Basic shapes present (e.g., "circle", "square", "rectangle")
+    - Use numbers instead of words in counts (e.g., "2 squares" instead of "two squares")
+    - Don't use words like "icon", "symbol", "image", "outline", because they are not relevant to the icon's purpose
+    - Always describe color, if it's other than gray (e.g. "folder with blue gear"). Don't add grey as a color, because all icons are gray by default.
+    - Always describe direction of arrows (e.g., "arrow down with bracket")
 
-Always describe color, if it's other than gray (e.g. "folder with blue gear"). 
-Don't add grey as a color.
-Always describe direction of arrows (e.g., "arrow down", "arrow left")
-Don't use words like "icon", "symbol", "image".
-Don't repeat the name or existing description.`;
+- [Optional] What the icon is typically used for in UI (e.g., "settings", "delete", "add")
+`;
 
 /**
  * Generate a prompt for icon synonym generation

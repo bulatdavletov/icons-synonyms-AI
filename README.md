@@ -18,6 +18,17 @@ npm install @create-figma-plugin/ui preact # New UI framework
 ```
 4. Build and run the plugin in Figma
 
+## UI Framework
+The plugin's user interface is built using:
+- **Preact**: A lightweight alternative to React with the same modern API
+  - [Official Preact Website](https://preactjs.com/)
+- **@create-figma-plugin/ui**: A UI toolkit specifically designed for Figma plugins
+  - [create-figma-plugin Documentation](https://yuanqing.github.io/create-figma-plugin/ui/)
+  - [create-figma-plugin Storybook](https://yuanqing.github.io/create-figma-plugin/storybook/?path=/story/index--index)
+  - Provides Figma-styled components
+  - Handles plugin-specific communication patterns
+  - Optimized for the Figma plugin environment
+
 ## Using the Plugin
 
 1. Install the plugin from Figma Plugin Store
