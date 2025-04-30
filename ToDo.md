@@ -1,7 +1,24 @@
 Batch Processing:
-- [ ] Create separate cards for several selected icons
-- [ ] Generate is for all selected components, apply is for current component
-- [ ] Add regenerate button to one icon card
+I select 3 component sets, plugin show all 3 of them.
+I press Generate All, plugin generate synonyms for all 3 component sets. 
+OpenAI side: If we make all messages in chat, could it improve quality of generation?
+I check components one by one.
+
+Possible action with each component:
+- Click synonyms from list
+- Manual edit description
+- "Save Description" to save current description. Synonyms should disappear. Green checkmark should be shown to show that this item was edited.
+- "Regenerate" synonyms.
+- "Cancel" to revert to original description
+
+When I change selection - I don'r want to loose components with generated synonyms.
+So if I change selection without generating - they should disappear.
+If I change selection and there is some generated synonyms - they shouldn't be lost.
+Tell me if this description clear enough or ask me to clarify something.
+
+- [ ] Components to separate cards? UI components to separate components?
+- [ ] "Generate All" is for all selected components, "Save Description" is for current component
+- [ ] Add "Regenerate" button to each card, that works only for current card
 
 Description Handling:
 - [ ] Must have option should be checked by default: description of an icon
