@@ -2,6 +2,7 @@ import { emit, on, showUI } from '@create-figma-plugin/utilities'
 import { exportNodeAsBase64, getBestNodeToExport } from './utils/icon-exporter'
 import { generateSynonyms } from './services/ai-service'
 import { ComponentInfo, Handler } from './types/index'
+import { DEFAULT_SYSTEM_MESSAGE, DEFAULT_USER_PROMPT } from '../prompt'
 
 const STORAGE_KEY = 'openai-api-key'
 const SYSTEM_MESSAGE_KEY = 'icon-synonyms-system-message'
@@ -42,7 +43,7 @@ function processSynonyms(synonyms: string[]): string[] {
 export default function () {
   showUI({
     width: 400,
-    height: 500
+    height: 400
   })
 
   function updateDescription(node: ComponentNode | ComponentSetNode, description: string) {
@@ -165,13 +166,13 @@ export default function () {
   // Handle reset prompt templates to default
   on('reset-prompt-templates', async () => {
     try {
-      // Reset to default templates
+      // Reset to default templates from prompt.ts
       await figma.clientStorage.setAsync(SYSTEM_MESSAGE_KEY, '')
       await figma.clientStorage.setAsync(USER_PROMPT_KEY, '')
       
       emit('prompt-templates-response', { 
-        systemMessage: '', 
-        userPrompt: '',
+        systemMessage: DEFAULT_SYSTEM_MESSAGE, 
+        userPrompt: DEFAULT_USER_PROMPT,
         isDefault: true
       })
       
@@ -261,11 +262,17 @@ export default function () {
       for (const componentId of componentIds) {
         await processSingleComponent(componentId)
       }
+      
+      // Reset global loading state when all processing is complete
+      emit('processing-complete')
     } catch (error: any) {
       console.error('Error in generate-synonyms handler:', error)
       emit('generate-error', { 
         error: error.message || 'Unknown error occurred during processing'
       })
+      
+      // Also reset loading state on error
+      emit('processing-complete')
     }
   })
 

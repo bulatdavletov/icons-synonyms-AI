@@ -1,6 +1,6 @@
 import { h, Fragment } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
-import { Text, VerticalSpace, Button, Textbox, IconWarningSmall24, IconRefresh16, Divider, IconFrame16, LoadingIndicator } from '@create-figma-plugin/ui'
+import { Text, VerticalSpace, Button, Textbox, IconWarningSmall24, IconRefresh16, IconComponent16, IconComponentSet16, LoadingIndicator, IconButton } from '@create-figma-plugin/ui'
 import { emit } from '@create-figma-plugin/utilities'
 import type { ComponentWithSynonyms } from './types'
 
@@ -8,6 +8,7 @@ interface Props {
   component: ComponentWithSynonyms
   onRegenerateSynonyms: (componentId: string) => void
   onDescriptionChange: (description: string, componentId: string) => void
+  onClearSynonyms: (componentId: string) => void
   showDivider: boolean
 }
 
@@ -15,59 +16,75 @@ export function ComponentCard({
   component,
   onRegenerateSynonyms,
   onDescriptionChange,
+  onClearSynonyms,
   showDivider
 }: Props) {
-  const [isExpanded, setIsExpanded] = useState(false)
   const [selectedSynonyms, setSelectedSynonyms] = useState<string[]>([])
   const [editableDescription, setEditableDescription] = useState(component.description || '')
-  const [isEditing, setIsEditing] = useState(false)
+  const [originalDescription, setOriginalDescription] = useState(component.description || '')
+  const [usedSynonyms, setUsedSynonyms] = useState<string[]>([])
+  const [isDescriptionChanged, setIsDescriptionChanged] = useState(false)
 
-  // Update the editable description when the component description changes
+  // Update the editable description when the component description changes from outside
   useEffect(() => {
     setEditableDescription(component.description || '')
-  }, [component.description])
+    setOriginalDescription(component.description || '')
+    setIsDescriptionChanged(false)
+  }, [component.description, component.id])
+
+  // Reset used synonyms when component changes
+  useEffect(() => {
+    setUsedSynonyms([])
+  }, [component.id])
 
   // Handle selection of a synonym
   const handleSynonymSelect = (synonym: string) => {
-    setSelectedSynonyms(prev => {
-      if (prev.includes(synonym)) {
-        return prev.filter(s => s !== synonym)
-      } else {
-        return [...prev, synonym]
-      }
-    })
+    // Add synonym to the editable description
+    const newDescription = editableDescription ? 
+      `${editableDescription}, ${synonym}` : 
+      synonym;
+    
+    setEditableDescription(newDescription)
+    setIsDescriptionChanged(newDescription !== originalDescription)
+    
+    // Mark this synonym as used
+    setUsedSynonyms(prev => [...prev, synonym])
   }
 
-  // Handle saving the description
+  // Handle saving the description when Save button is clicked
   const handleSaveDescription = () => {
     emit('update-description', {
       rawDescription: editableDescription,
       componentId: component.id
     })
-    setIsEditing(false)
+    
+    // Clear used synonyms after saving
+    setUsedSynonyms([])
+    
+    // Remove synonyms completely from the component
+    onClearSynonyms(component.id)
+    
+    setOriginalDescription(editableDescription)
+    setIsDescriptionChanged(false)
   }
 
-  // Handle using selected synonyms
-  const handleUseSynonyms = () => {
-    if (selectedSynonyms.length === 0) return
-    
-    emit('update-description', {
-      synonyms: selectedSynonyms,
-      componentId: component.id
-    })
-    
-    setSelectedSynonyms([])
+  // Handle canceling description edits
+  const handleCancelDescription = () => {
+    setEditableDescription(originalDescription)
+    setIsDescriptionChanged(false)
+    setUsedSynonyms([])
   }
 
-  // Handle cancel editing
-  const handleCancelEdit = () => {
-    setEditableDescription(component.description || '')
-    setIsEditing(false)
+  // Handle description input change
+  const handleDescriptionChange = (value: string) => {
+    setEditableDescription(value)
+    setIsDescriptionChanged(value !== originalDescription)
   }
 
   // Handle regenerate synonyms for this component
   const handleRegenerateSynonyms = () => {
     setSelectedSynonyms([])
+    setUsedSynonyms([])
     onRegenerateSynonyms(component.id)
   }
 
@@ -83,203 +100,135 @@ export function ComponentCard({
         marginBottom: '8px'
       }}>
         {/* Component name and type */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <IconFrame16 />
-            <Text>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+            {component.type === 'COMPONENT_SET' ? <IconComponentSet16 /> : <IconComponent16 />}
+            <Text style={{ flex: 1 }}>
               <strong>{component.name}</strong>
             </Text>
           </div>
-          <div>
-            <Text>
-              <small style={{ opacity: 0.7 }}>{component.type}</small>
-            </Text>
-          </div>
+          {component.synonyms.length > 0 && (
+            <IconButton 
+              onClick={handleRegenerateSynonyms}
+              disabled={component.isLoading}
+            >
+              <IconRefresh16 />
+            </IconButton>
+          )}
         </div>
         
         <VerticalSpace space="small" />
         
-        {/* Description section */}
-        {isEditing ? (
+        {/* Description textarea - always visible */}
+        <Textbox
+          value={editableDescription}
+          placeholder="Enter a description for this component..."
+          onValueInput={handleDescriptionChange}
+          style={{ width: '100%' }}
+        />
+        
+        {/* Synonyms section directly in the card */}
+        {(component.synonyms.length > 0 || component.isLoading || component.isError) && (
           <Fragment>
-            <Textbox
-              value={editableDescription}
-              placeholder="Enter a description for this component..."
-              onValueInput={setEditableDescription}
-              style={{ width: '100%' }}
-            />
-            <VerticalSpace space="extraSmall" />
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <VerticalSpace space="medium" />
+            <div style={{ 
+              borderTop: '1px solid var(--figma-color-border)',
+              paddingTop: '12px' 
+            }}>
+              
+              {/* Display loading, error, or synonyms */}
+              {component.isLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '12px' }}>
+                  <LoadingIndicator />
+                </div>
+              ) : component.isError ? (
+                <div style={{ 
+                  backgroundColor: 'var(--figma-color-bg-danger-secondary)',
+                  color: 'var(--figma-color-text-danger)',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px'
+                }}>
+                  <IconWarningSmall24 />
+                  <Text style={{ color: 'var(--figma-color-text-danger)' }}>
+                    {component.errorMessage || 'An error occurred while generating synonyms'}
+                  </Text>
+                </div>
+              ) : component.synonyms.length === 0 ? (
+                <div style={{ 
+                  backgroundColor: 'var(--figma-color-bg-disabled)',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  textAlign: 'center'
+                }}>
+                  <Text style={{ opacity: 0.7 }}>
+                    No synonyms generated yet. Click the refresh button to generate.
+                  </Text>
+                </div>
+              ) : (
+                <Fragment>
+                  {/* Synonyms tags */}
+                  <div style={{ 
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px'
+                  }}>
+                    {component.synonyms.map(synonym => (
+                      <div 
+                        key={synonym}
+                        style={{ 
+                          padding: '4px 8px',
+                          backgroundColor: usedSynonyms.includes(synonym)
+                            ? 'var(--figma-color-bg-selected)'
+                            : 'var(--figma-color-bg-secondary)',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          border: usedSynonyms.includes(synonym)
+                            ? '1px solid var(--figma-color-border-selected)'
+                            : '1px solid var(--figma-color-border)'
+                        }}
+                        onClick={() => handleSynonymSelect(synonym)}
+                      >
+                        <Text style={{ 
+                          color: usedSynonyms.includes(synonym)
+                            ? 'var(--figma-color-text-selected)'
+                            : 'var(--figma-color-text)'
+                        }}>
+                          {synonym}
+                        </Text>
+                      </div>
+                    ))}
+                  </div>
+                </Fragment>
+              )}
+            </div>
+          </Fragment>
+        )}
+                
+                
+        {/* Save/Cancel buttons - only visible when description has changed */}
+        {isDescriptionChanged && (
+          <Fragment>
+            <VerticalSpace space="medium" />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start' }}>
               <Button
-                onClick={handleCancelEdit}
+                onClick={handleSaveDescription}
+              >
+                Save Description
+              </Button>
+              <Button
+                onClick={handleCancelDescription}
                 secondary
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleSaveDescription}
-              >
-                Save
-              </Button>
-            </div>
-          </Fragment>
-        ) : (
-          <Fragment>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'flex-start'
-            }}>
-              <div style={{ flex: 1 }}>
-                {component.description ? (
-                  <Text style={{ wordBreak: 'break-word' }}>
-                    {component.description}
-                  </Text>
-                ) : (
-                  <Text style={{ opacity: 0.5, fontStyle: 'italic' }}>
-                    No description available
-                  </Text>
-                )}
-              </div>
-              <Button 
-                onClick={() => setIsEditing(true)}
-                secondary
-              >
-                Edit
-              </Button>
             </div>
           </Fragment>
         )}
-        
-        {/* Expand/collapse button for synonyms */}
-        <VerticalSpace space="small" />
-        <Button 
-          secondary 
-          fullWidth 
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          {isExpanded ? 'Hide Synonyms' : 'Show Synonyms'}
-        </Button>
+
       </div>
-      
-      {/* Expanded synonyms section */}
-      {isExpanded && (
-        <div style={{ 
-          backgroundColor: 'var(--figma-color-bg)',
-          padding: '12px',
-          borderRadius: '4px',
-          marginBottom: '8px',
-          border: '1px solid var(--figma-color-border)'
-        }}>
-          {/* Synonyms section header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text>
-              <strong>Synonyms</strong>
-            </Text>
-            <Button 
-              onClick={handleRegenerateSynonyms}
-              secondary
-              disabled={component.isLoading}
-            >
-              <IconRefresh16 />
-            </Button>
-          </div>
-          
-          <VerticalSpace space="small" />
-          
-          {/* Display loading, error, or synonyms */}
-          {component.isLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
-              <LoadingIndicator />
-            </div>
-          ) : component.isError ? (
-            <div style={{ 
-              backgroundColor: 'var(--figma-color-bg-danger-secondary)',
-              color: 'var(--figma-color-text-danger)',
-              padding: '8px',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '8px'
-            }}>
-              <IconWarningSmall24 />
-              <Text style={{ color: 'var(--figma-color-text-danger)' }}>
-                {component.errorMessage || 'An error occurred while generating synonyms'}
-              </Text>
-            </div>
-          ) : component.synonyms.length === 0 ? (
-            <div style={{ 
-              backgroundColor: 'var(--figma-color-bg-disabled)',
-              padding: '8px',
-              borderRadius: '4px',
-              textAlign: 'center'
-            }}>
-              <Text style={{ opacity: 0.7 }}>
-                No synonyms generated yet. Click the refresh button to generate.
-              </Text>
-            </div>
-          ) : (
-            <Fragment>
-              {/* Synonyms tags */}
-              <div style={{ 
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '8px'
-              }}>
-                {component.synonyms.map(synonym => (
-                  <div 
-                    key={synonym}
-                    style={{ 
-                      padding: '4px 8px',
-                      backgroundColor: selectedSynonyms.includes(synonym) 
-                        ? 'var(--figma-color-bg-selected)' 
-                        : 'var(--figma-color-bg-secondary)',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      border: selectedSynonyms.includes(synonym)
-                        ? '1px solid var(--figma-color-border-selected)'
-                        : '1px solid var(--figma-color-border)'
-                    }}
-                    onClick={() => handleSynonymSelect(synonym)}
-                  >
-                    <Text style={{ 
-                      color: selectedSynonyms.includes(synonym) 
-                        ? 'var(--figma-color-text-selected)' 
-                        : 'var(--figma-color-text)'
-                    }}>
-                      {synonym}
-                    </Text>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Use selected synonyms button */}
-              {selectedSynonyms.length > 0 && (
-                <Fragment>
-                  <VerticalSpace space="small" />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text>
-                      <small>{selectedSynonyms.length} selected</small>
-                    </Text>
-                    <Button onClick={handleUseSynonyms}>
-                      Use Selected
-                    </Button>
-                  </div>
-                </Fragment>
-              )}
-            </Fragment>
-          )}
-        </div>
-      )}
-      
-      {/* Divider between components */}
-      {showDivider && (
-        <Fragment>
-          <VerticalSpace space="small" />
-          <Divider />
-          <VerticalSpace space="small" />
-        </Fragment>
-      )}
     </Fragment>
   )
 } 

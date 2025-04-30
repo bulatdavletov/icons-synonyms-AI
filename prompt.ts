@@ -13,7 +13,7 @@ export const DEFAULT_USER_PROMPT = `
 - [Required] First item: Description of what the icon shows without commas (e.g., "folder with blue gear")
     - Don't separate words here, just describe the icon as a whole (e.g., "folder with blue gear" instead of "folder, blue, gear")
     - Use numbers instead of words in counts (e.g., "2 squares" instead of "two squares")
-    - Don't use words like "icon", "symbol", "image", "outline", because they are not relevant to the icon's purpose
+    - Don't use words like "icon", "symbol", "image", "outline", "shape", because they are not relevant to the icon's purpose
     - Always describe color, if it's other than gray (e.g. "folder with blue gear"). Don't add grey as a color, because all icons are gray by default.
     - Always describe direction of arrows (e.g., "arrow down with bracket")
 

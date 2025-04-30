@@ -27,14 +27,8 @@ export function App() {
           <div style={{ width: 28 }}></div> // Empty space for layout balance
         )}
         
-        <Text>
-          <strong>{activeTab === 'main' ? 'Icon Synonyms' : 'Settings'}</strong>
-        </Text>
-        
-        {activeTab === 'main' ? (
-          <IconButton onClick={() => handleTabChange('settings')}>
-            <IconSettingsSmall24 />
-          </IconButton>
+        {activeTab === 'settings' ? (
+          <div style={{ width: 28 }}></div> // Empty space for layout balance
         ) : (
           <div style={{ width: 28 }}></div> // Empty space for layout balance
         )}
@@ -43,7 +37,7 @@ export function App() {
       <VerticalSpace space="medium" />
 
       {activeTab === 'main' ? (
-        <Mode />
+        <Mode onSettingsClick={() => handleTabChange('settings')} />
       ) : (
         <Settings />
       )}

@@ -1,7 +1,7 @@
 import { h, Fragment } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { Button, Container, Text, TextboxMultiline, VerticalSpace, Link } from '@create-figma-plugin/ui'
+import { Button, Container, Text, TextboxMultiline, VerticalSpace, Link, Textbox } from '@create-figma-plugin/ui'
 
 export function Settings() {
   const [apiKey, setApiKey] = useState<string>('')
@@ -91,20 +91,19 @@ export function Settings() {
   }
 
   return (
-    <Container space="medium">
+    <Container space="extraSmall">
       <VerticalSpace space="large" />
       
       {/* API Key Section */}
       <Text><strong>OpenAI API Key</strong></Text>
       <VerticalSpace space="small" />
-      <Text><Link href="https://platform.openai.com/api-keys" target="_blank">Generate it here.</Link> Requires OpenAI account and about 5$.</Text>
+      <Text><Link href="https://platform.openai.com/api-keys" target="_blank">Obtain here</Link> or just ask Bulat</Text>
       
       <VerticalSpace space="medium" />
-      <TextboxMultiline
+      <Textbox
         placeholder="sk-..."
         value={apiKey}
         onValueInput={value => setApiKey(value)}
-        rows={2}
       />
       
       <VerticalSpace space="medium" />
@@ -120,12 +119,12 @@ export function Settings() {
       
       {/* Prompt Template Section */}
       <Text><strong>Prompt</strong></Text>      
-      <VerticalSpace space="medium" />
+      <VerticalSpace space="small" />
       <TextboxMultiline
         placeholder="Enter user prompt..."
         value={userPrompt}
         onValueInput={value => setUserPrompt(value)}
-        rows={12}
+        rows={20}
       />
       
       <VerticalSpace space="medium" />
@@ -146,18 +145,8 @@ export function Settings() {
         </Button>
       </div>
 
-      {saveStatus && (
-        <div>
-          <VerticalSpace space="small" />
-          <Text style={{ 
-            color: saveStatus.type === 'success' 
-              ? 'var(--figma-color-text-success)' 
-              : 'var(--figma-color-text-danger)' 
-          }}>
-            {saveStatus.message}
-          </Text>
-        </div>
-      )}
+      <VerticalSpace space="large" />
+
     </Container>
   )
 } 

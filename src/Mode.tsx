@@ -1,11 +1,15 @@
 import { h, Fragment } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
 import { emit, on } from '@create-figma-plugin/utilities'
-import { Text, VerticalSpace, Button, Textbox, IconWarningSmall24, Divider, Stack, LoadingIndicator } from '@create-figma-plugin/ui'
+import { Text, VerticalSpace, Button, Textbox, IconInteractive24, Divider, Stack, LoadingIndicator, IconButton, IconSettingsSmall24 } from '@create-figma-plugin/ui'
 import { ComponentCard } from './ComponentCard'
 import type { ComponentInfo, ComponentWithSynonyms, ComponentsMap } from './types'
 
-export function Mode() {
+interface ModeProps {
+  onSettingsClick: () => void
+}
+
+export function Mode({ onSettingsClick }: ModeProps) {
   const [components, setComponents] = useState<ComponentWithSynonyms[]>([])
   const [componentsMap, setComponentsMap] = useState<ComponentsMap>(new Map())
   const [loading, setLoading] = useState(false)
@@ -17,6 +21,9 @@ export function Mode() {
     // Listen for selection changes
     const handleSelectionChange = (data: ComponentInfo[]) => {
       if (!data || data.length === 0) {
+        // Clear the component state when no selection
+        setComponentsMap(new Map())
+        setComponents([])
         return
       }
 
@@ -160,12 +167,19 @@ export function Mode() {
         )
       )
     }
+    
+    // Listen for processing complete event
+    const handleProcessingComplete = () => {
+      // Reset global loading state
+      setLoading(false)
+    }
 
     // Register event listeners
     on('selection-change', handleSelectionChange)
     on('synonyms-generated', handleSynonymsGenerated)
     on('generate-error', handleGenerationError)
     on('description-updated', handleDescriptionUpdated)
+    on('processing-complete', handleProcessingComplete)
 
     return () => {
       // Clean up event listeners if needed
@@ -201,6 +215,35 @@ export function Mode() {
     
     // Emit event to generate synonyms for this specific component
     emit('generate-synonyms', [componentId])
+  }
+
+  const handleClearSynonyms = (componentId: string) => {
+    // Update the component to remove synonyms
+    setComponentsMap(prev => {
+      const newMap = new Map(prev)
+      const component = newMap.get(componentId)
+      
+      if (component) {
+        newMap.set(componentId, {
+          ...component,
+          synonyms: [],
+          isLoading: false,
+          isError: false,
+          errorMessage: undefined
+        })
+      }
+      
+      return newMap
+    })
+    
+    // Update the components array
+    setComponents(prev => 
+      prev.map(component => 
+        component.id === componentId
+          ? { ...component, synonyms: [], isLoading: false, isError: false, errorMessage: undefined }
+          : component
+      )
+    )
   }
 
   const handleGenerateSynonyms = () => {
@@ -254,21 +297,46 @@ export function Mode() {
           flexDirection: 'column', 
           alignItems: 'center', 
           justifyContent: 'center',
-          minHeight: '200px',
-          padding: '20px',
-          border: '1px dashed var(--figma-color-border)',
-          borderRadius: '4px',
-          marginBottom: '20px'
+          height: 'calc(100vh - 120px)', // Full height minus header/footer space
         }}>
-          <IconWarningSmall24 />
+          <IconInteractive24 />
           <VerticalSpace space="small" />
           <Text align="center">
-            <strong>No Components Selected</strong>
+            Select components
           </Text>
-          <VerticalSpace space="small" />
-          <Text align="center">
-            Please select one or more components in Figma.
-          </Text>
+        </div>
+        
+        {/* Fixed button at the bottom - always visible */}
+        <div style={{ 
+          position: 'fixed', 
+          bottom: 0, 
+          left: 0, 
+          width: '100%', 
+          padding: '16px 16px',
+          backgroundColor: 'var(--figma-color-bg)',
+          boxShadow: '0 -1px 2px rgba(0, 0, 0, 0.1)',
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <div style={{ display: 'block', width: '100%' }}>
+            <Button 
+              fullWidth
+              style={{ 
+                width: '100%',
+                display: 'block',
+                boxSizing: 'border-box'
+              }}
+              onClick={handleGenerateSynonyms} 
+              disabled={true}
+            >
+              Generate Synonyms
+            </Button>
+          </div>
+          <IconButton onClick={onSettingsClick}>
+            <IconSettingsSmall24 />
+          </IconButton>
         </div>
       </Fragment>
     )
@@ -285,22 +353,25 @@ export function Mode() {
       )}
 
       {/* Content container with padding at the bottom for the fixed button */}
-      <div style={{ paddingBottom: '60px' }}>
-        <Text>
-          <strong>{components.length} component{components.length !== 1 ? 's' : ''} selected</strong>
-        </Text>
-        <VerticalSpace space="small" />
-
+      <div style={{ 
+        paddingBottom: '60px', 
+        minHeight: 'calc(100vh - 120px)', // Full height minus header/footer space 
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
         {/* Component cards */}
-        {components.map((component, index) => (
-          <ComponentCard
-            key={component.id}
-            component={component}
-            onRegenerateSynonyms={handleRegenerateSynonyms}
-            onDescriptionChange={handleDescriptionChange}
-            showDivider={index < components.length - 1}
-          />
-        ))}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {components.map((component, index) => (
+            <ComponentCard
+              key={component.id}
+              component={component}
+              onRegenerateSynonyms={handleRegenerateSynonyms}
+              onDescriptionChange={handleDescriptionChange}
+              onClearSynonyms={handleClearSynonyms}
+              showDivider={index < components.length - 1}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Fixed button at the bottom */}
@@ -312,16 +383,33 @@ export function Mode() {
         padding: '16px 16px',
         backgroundColor: 'var(--figma-color-bg)',
         boxShadow: '0 -1px 2px rgba(0, 0, 0, 0.1)',
-        zIndex: 100
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
       }}>
-        <Button fullWidth onClick={handleGenerateSynonyms} disabled={loading || components.length === 0}>
-          {loading 
-            ? 'Generating...' 
-            : components.length === 1 
-              ? 'Generate Synonyms' 
-              : `Generate Synonyms for All (${components.length})`
-          }
-        </Button>
+        <div style={{ display: 'block', width: '100%' }}>
+          <Button 
+            fullWidth
+            style={{ 
+              width: '100%',
+              display: 'block',
+              boxSizing: 'border-box'
+            }}
+            onClick={handleGenerateSynonyms} 
+            disabled={loading || components.length === 0}
+          >
+            {loading 
+              ? 'Generating...' 
+              : components.length === 1 
+                ? 'Generate Synonyms' 
+                : `Generate Synonyms • ${components.length}`
+            }
+          </Button>
+        </div>
+        <IconButton onClick={onSettingsClick}>
+          <IconSettingsSmall24 />
+        </IconButton>
       </div>
     </Fragment>
   )
