@@ -1,10 +1,27 @@
 # Implementation Plan for Batch Processing Feature
 
-## Phase 0: Split plugin to two tabs - Single selection and Batch selection
-Create Tab to work with one file and second tab to work with multiple selections.
-I want always to have working plugin.
-Currently I have version that works with one file, it should stay.
-Batch selection files also should use different files, so not broke existing functionality of single selection.
+## Phase 0: Split Plugin into Single and Batch Selection Modes
+
+### Overview
+Refactor the plugin to support two distinct modes of operation:
+1. Single Selection Mode - For working with individual components (existing functionality)
+2. Batch Selection Mode - For processing multiple components simultaneously
+
+### Implementation Steps
+1. Create a tabbed interface with two tabs:
+   - "Single" - Preserves current single-selection functionality
+   - "Batch" - New interface for handling multiple components
+
+2. Code Organization
+   - Maintain existing single-selection code in dedicated files, but rename to use "single" prefix
+   - Create new files for batch processing features, use "batch" prefix
+   - Keep shared utilities and types in common files
+   - Use clear naming conventions to distinguish between modes
+
+### Development Approach
+- Implement changes incrementally to maintain plugin stability
+- Ensure single-selection mode remains fully functional throughout development
+- Use separate files and components for batch functionality to avoid conflicts
 
 ## Phase 1: Core Functionality and Data Management
 
