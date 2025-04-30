@@ -15,18 +15,36 @@ export interface SynonymGroup {
 }
 
 export interface ComponentInfo {
+  id: string // Unique identifier for the component
   name: string
   type: string
   description: string
   hasDescription: boolean
 }
 
+// Extended component info with generation status and synonyms
+export interface ComponentWithSynonyms extends ComponentInfo {
+  synonyms: string[] // Generated synonyms
+  isLoading?: boolean // Whether synonyms are being generated
+  isEdited?: boolean // Whether component has been edited
+  isError?: boolean // Whether there was an error during generation
+  errorMessage?: string // Error message if any
+}
+
+// Map to store components and their synonyms
+export type ComponentsMap = Map<string, ComponentWithSynonyms>
+
 export interface Handler {
   'selection-change': (componentInfo: ComponentInfo) => void
+  'batch-selection-change': (components: ComponentInfo[]) => void
   'generate-synonyms': () => void
-  'synonyms-generated': (data: { synonyms: string[] }) => void
-  'generate-error': (data: { error: string }) => void
+  'generate-batch-synonyms': (componentIds: string[]) => void
+  'synonyms-generated': (data: { synonyms: string[], componentId?: string }) => void
+  'generate-error': (data: { error: string, componentId?: string }) => void
   'update-description': (data: { synonyms: string[] }) => void
+  'description-updated': (data: { description: string, hasDescription: boolean }) => void
+  'get-current-synonyms': () => void
+  'current-synonyms-response': (data: { synonyms: string[] }) => void
 }
 
 export type HandlerEvent<K extends keyof Handler> = {

@@ -2,7 +2,7 @@ import { h, Fragment } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { Text, VerticalSpace, Button } from '@create-figma-plugin/ui'
-import { ComponentInfo } from '../ComponentInfo'
+import { SingleComponentCard } from './SingleComponentCard'
 import type { ComponentInfo as ComponentInfoType } from '../../types/index'
 
 export function SingleMode() {
@@ -88,7 +88,7 @@ export function SingleMode() {
         )}
 
         {componentInfo && (
-          <ComponentInfo
+          <SingleComponentCard
             name={componentInfo.name}
             type={componentInfo.type}
             description={componentInfo.description}
