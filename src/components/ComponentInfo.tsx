@@ -36,6 +36,7 @@ export function ComponentInfo({
 }: Props) {
   const [editedDescription, setEditedDescription] = useState(description)
   const [hasPendingChanges, setHasPendingChanges] = useState(false)
+  const [isManuallyEdited, setIsManuallyEdited] = useState(false)
   const processedSynonyms = useRef<string[]>([])
   const [localSelectedSynonyms, setLocalSelectedSynonyms] = useState<string[]>([])
   
@@ -46,6 +47,7 @@ export function ComponentInfo({
     console.log('description prop changed:', description);
     if (!hasPendingChanges) {
       setEditedDescription(description || '')
+      setIsManuallyEdited(false) // Reset manual edit flag when description prop changes
       console.log('Updated editedDescription state to:', description || '');
     }
   }, [description, hasPendingChanges])
@@ -102,6 +104,7 @@ export function ComponentInfo({
     // Always set hasPendingChanges when the value is different from the original description
     const hasChanges = value !== description;
     setHasPendingChanges(hasChanges);
+    setIsManuallyEdited(true); // Mark as manually edited whenever text field changes
     console.log('hasPendingChanges set to:', hasChanges);
     
     // Notify parent if callback provided - always call this to keep parent state in sync
@@ -114,12 +117,13 @@ export function ComponentInfo({
   
   const handleSave = () => {
     if (editedDescription && editedDescription.trim() !== description?.trim()) {
-      // Send the edited description to be updated as is, without processing
+      // Always treat edits in the text field as manual edits, regardless of how they originated
       emit('update-description', { 
         rawDescription: editedDescription,  // Send the raw text directly
         isManualEdit: true
       })
       setHasPendingChanges(false)
+      setIsManuallyEdited(false) // Reset after saving
       // Reset selected synonyms after saving
       setLocalSelectedSynonyms([])
     }
@@ -128,6 +132,7 @@ export function ComponentInfo({
   const handleCancel = () => {
     setEditedDescription(description || '')
     setHasPendingChanges(false)
+    setIsManuallyEdited(false) // Reset after canceling
     // Reset selected synonyms on cancel
     setLocalSelectedSynonyms([])
   }
@@ -177,26 +182,36 @@ export function ComponentInfo({
   
   const handleApplySynonyms = () => {
     if (localSelectedSynonyms.length > 0) {
-      emit('update-description', { 
-        synonyms: localSelectedSynonyms,
-        isManualEdit: false
-      })
+      // If the description has been manually edited after selecting synonyms,
+      // treat it as a manual edit
+      if (isManuallyEdited) {
+        emit('update-description', { 
+          rawDescription: editedDescription,
+          isManualEdit: true
+        })
+      } else {
+        emit('update-description', { 
+          synonyms: localSelectedSynonyms,
+          isManualEdit: false
+        })
+      }
       
       // Reset selected synonyms after applying
       setLocalSelectedSynonyms([])
       setHasPendingChanges(false)
+      setIsManuallyEdited(false)
     }
   }
   
   return (
     <div class="component-info">
       <Stack space="small">
-        <Layer component value={false} icon={<IconComponent16 />} onChange={() => {}}>
+        <Layer component value={false} icon={<IconComponent16 />} description={description} onChange={() => {}}>
           <strong>{name}</strong>
         </Layer>
         
         {type === '' ? (
-        <Layer component value={false} icon={<IconComponent16 />} onChange={() => {}}>
+        <Layer component value={false} icon={<IconComponent16 />} description="No component is currently selected" onChange={() => {}}>
             <em>No component selected</em>
           </Layer>
         ) : (
