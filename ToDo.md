@@ -22,3 +22,6 @@ Similar Icons:
 - [ ] Find similar named or descripted icons, and copy show their description
 How? Should we have list of all icons with descriptions?
 - [ ] Check name and description of mods inside
+
+- Ability to export and import all layers as CSV file: with name of layer, description, links, etc
+So we can do some manipulations with it in other tools.
