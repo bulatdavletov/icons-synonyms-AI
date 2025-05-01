@@ -51,5 +51,5 @@ If i click name of a component - I want to zoom in on it, without loosing curren
 
 If I select components, generate synonyms, and then select another components - I want to save card with generated synonyms. If component doesn't have any changes or synonyms - deselect it.
 
-
+Save all, Generate all, Clear all?
 
