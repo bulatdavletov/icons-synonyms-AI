@@ -5,11 +5,11 @@ import { Text, VerticalSpace, Button, Textbox, IconInteractive24, Divider, Stack
 import { ComponentCard } from './ComponentCard'
 import type { ComponentInfo, ComponentWithSynonyms, ComponentsMap } from './types'
 
-interface ModeProps {
+interface HomeProps {
   onSettingsClick: () => void
 }
 
-export function Mode({ onSettingsClick }: ModeProps) {
+export function Home({ onSettingsClick }: HomeProps) {
   const [components, setComponents] = useState<ComponentWithSynonyms[]>([])
   const [componentsMap, setComponentsMap] = useState<ComponentsMap>(new Map())
   const [loading, setLoading] = useState(false)

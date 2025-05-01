@@ -3,7 +3,7 @@ import { useEffect, useState } from 'preact/hooks'
 import { emit, on } from '@create-figma-plugin/utilities'
 import { Container, Text, VerticalSpace, IconButton, Button, IconSettingsSmall24, IconNavigateBack24 } from '@create-figma-plugin/ui'
 import type { JSX } from 'preact'
-import { Mode } from './Mode'
+import { Home } from './Home'
 import { Settings } from './Settings'
 
 export function App() {
@@ -37,7 +37,7 @@ export function App() {
       <VerticalSpace space="medium" />
 
       {activeTab === 'main' ? (
-        <Mode onSettingsClick={() => handleTabChange('settings')} />
+        <Home onSettingsClick={() => handleTabChange('settings')} />
       ) : (
         <Settings />
       )}

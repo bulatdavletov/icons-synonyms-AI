@@ -42,3 +42,14 @@ How? Should we have list of all icons with descriptions?
 
 - Ability to export and import all layers as CSV file: with name of layer, description, links, etc
 So we can do some manipulations with it in other tools.
+
+---
+
+If I select 2 cpomponents with similar names "toolwindow / ant" and "toolwindow / ant@20x20", I want to generate one description for both of them.
+
+If i click name of a component - I want to zoom in on it, without loosing current selection.
+
+If I select components, generate synonyms, and then select another components - I want to save card with generated synonyms. If component doesn't have any changes or synonyms - deselect it.
+
+
+
