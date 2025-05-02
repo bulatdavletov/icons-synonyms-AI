@@ -53,3 +53,4 @@ If I select components, generate synonyms, and then select another components - 
 
 Save all, Generate all, Clear all?
 
+Order of selected components is weird, don't know how to describe.
