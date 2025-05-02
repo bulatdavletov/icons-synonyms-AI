@@ -292,6 +292,8 @@ export function Home({ onSettingsClick }: HomeProps) {
   if (!isInitialized || components.length === 0) {
     return (
       <Fragment>
+        
+        {/* Empty state */}
         <div style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -344,6 +346,8 @@ export function Home({ onSettingsClick }: HomeProps) {
 
   return (
     <Fragment>
+      <VerticalSpace space="medium" />
+    
       {/* Display error if any */}
       {error && (
         <Fragment>
