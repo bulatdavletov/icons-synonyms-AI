@@ -2,11 +2,12 @@ import { emit, on, showUI } from '@create-figma-plugin/utilities'
 import { exportNodeAsBase64, getBestNodeToExport } from './utils/icon-exporter'
 import { generateSynonyms } from './services/ai-service'
 import { ComponentInfo, Handler } from './types/index'
-import { DEFAULT_SYSTEM_MESSAGE, DEFAULT_USER_PROMPT } from '../prompt'
+import { DEFAULT_SYSTEM_MESSAGE, DEFAULT_USER_PROMPT } from './prompt'
 
 const STORAGE_KEY = 'openai-api-key'
 const SYSTEM_MESSAGE_KEY = 'icon-synonyms-system-message'
 const USER_PROMPT_KEY = 'icon-synonyms-user-prompt'
+const AI_MODEL_KEY = 'openai-model-choice'
 
 /**
  * Processes synonyms into a flat list
@@ -42,8 +43,8 @@ function processSynonyms(synonyms: string[]): string[] {
 
 export default function () {
   showUI({
-    width: 400,
-    height: 400
+    width: 360,
+    height: 450
   })
 
   function updateDescription(node: ComponentNode | ComponentSetNode, description: string) {
@@ -143,6 +144,30 @@ export default function () {
     }
   })
 
+  // Handle requests for AI model
+  on('get-ai-model', async () => {
+    try {
+      // Get AI model from client storage
+      const model = await figma.clientStorage.getAsync(AI_MODEL_KEY)
+      emit('ai-model-response', { model: model || 'gpt-4.1-mini' })
+    } catch (error) {
+      console.error('Error retrieving AI model:', error)
+      emit('ai-model-response', { model: 'gpt-4.1-mini' })
+    }
+  })
+
+  // Handle save requests for AI model
+  on('save-ai-model', async (data: { model: string }) => {
+    try {
+      // Save AI model to client storage
+      await figma.clientStorage.setAsync(AI_MODEL_KEY, data.model)
+      emit('ai-model-saved')
+    } catch (error: any) {
+      console.error('Error saving AI model:', error)
+      emit('ai-model-save-error', { error: error.message || 'Failed to save AI model' })
+    }
+  })
+
   // Handle save requests for prompt templates
   on('save-prompt-templates', async (data: { systemMessage: string; userPrompt: string }) => {
     try {
@@ -197,6 +222,9 @@ export default function () {
         return
       }
       
+      // Get AI model from storage, default to gpt-4.1-mini if not set
+      const model = await figma.clientStorage.getAsync(AI_MODEL_KEY) || 'gpt-4.1-mini'
+      
       // Find the node by ID
       const node = figma.getNodeById(nodeId)
       
@@ -226,7 +254,8 @@ export default function () {
         name,
         imageBase64,
         existingDescription: description,
-        apiKey
+        apiKey,
+        model
       })
       
       if (result.error) {
