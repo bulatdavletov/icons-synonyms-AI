@@ -1,6 +1,6 @@
 import { h, Fragment } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
-import { Text, VerticalSpace, Button, Textbox, IconWarningSmall24, IconRefresh16, IconComponent16, IconComponentSet16, LoadingIndicator, IconButton } from '@create-figma-plugin/ui'
+import { Text, VerticalSpace, Button, Textbox, TextboxMultiline, IconWarningSmall24, IconRefresh16, IconComponent16, IconComponentSet16, LoadingIndicator, IconButton } from '@create-figma-plugin/ui'
 import { emit } from '@create-figma-plugin/utilities'
 import type { ComponentWithSynonyms } from './types'
 
@@ -120,11 +120,13 @@ export function ComponentCard({
         <VerticalSpace space="small" />
         
         {/* Description textarea - always visible */}
-        <Textbox
+        <TextboxMultiline
           value={editableDescription}
           placeholder="Enter a description for this component..."
           onValueInput={handleDescriptionChange}
           style={{ width: '100%' }}
+          grow
+          rows={Math.min(5, Math.max(1, (editableDescription.match(/\n/g) || []).length + 1))}
         />
         
         {/* Synonyms section directly in the card */}
