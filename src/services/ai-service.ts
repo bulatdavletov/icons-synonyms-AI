@@ -1,5 +1,8 @@
 // AI Service for handling OpenAI integration
-import { getIconSynonymsPrompt } from '../../prompt';
+import { getIconSynonymsPrompt } from '../prompt';
+
+// Set to true to enable two-pass generation (second message to verify and improve results)
+const ENABLE_TWO_PASS_GENERATION = true;
 
 interface OpenAIResponse {
   synonyms: string[];
@@ -11,6 +14,7 @@ interface GenerateSynonymsParams {
   imageBase64: string;
   existingDescription?: string;
   apiKey: string;
+  model?: string;
 }
 
 /**
@@ -53,6 +57,7 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     console.log('Sending to OpenAI:');
     console.log('System Message:', promptData.systemMessage);
     console.log('User Prompt:', promptData.userPrompt);
+    console.log('Model:', params.model || 'gpt-4.1-mini');
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -61,7 +66,7 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
         'Authorization': `Bearer ${params.apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: params.model || 'gpt-4.1-mini',
         messages: [
           {
             role: 'system',
@@ -100,11 +105,73 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    let data = await response.json();
     console.log('------------------------------------');
     console.log('RESPONSE FROM OPENAI:');
     console.log(data.choices[0].message.content);
     console.log('------------------------------------');
+    
+    // If two-pass generation is enabled, send a follow-up message to verify and improve results
+    if (ENABLE_TWO_PASS_GENERATION) {
+      console.log('Sending follow-up message for verification...');
+      
+      const initialResponse = data.choices[0].message.content;
+      
+      const verificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${params.apiKey}`
+        },
+        body: JSON.stringify({
+          model: params.model || 'gpt-4.1-mini',
+          messages: [
+            {
+              role: 'system',
+              content: promptData.systemMessage
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: promptData.userPrompt
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/png;base64,${params.imageBase64}`
+                  }
+                }
+              ]
+            },
+            {
+              role: 'assistant',
+              content: initialResponse
+            },
+            {
+              role: 'user',
+              content: 
+                "Please review your previous answer. Make sure you've followed all the rules from the message. Return a comma-separated list of synonyms that are precise, concise, and relevant to the icon shown. If your previous answer already meets these criteria, you can return it unchanged."
+            }
+          ],
+          max_tokens: 300
+        })
+      });
+      
+      if (!verificationResponse.ok) {
+        console.log('Verification response failed, using initial response');
+      } else {
+        const verificationData = await verificationResponse.json();
+        console.log('------------------------------------');
+        console.log('VERIFICATION RESPONSE FROM OPENAI:');
+        console.log(verificationData.choices[0].message.content);
+        console.log('------------------------------------');
+        
+        // Use the verification response instead
+        data = verificationData;
+      }
+    }
 
     // Parse the response text into structured format
     const parsedSynonyms = parseAIResponse(data.choices[0].message.content);
