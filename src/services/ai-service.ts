@@ -106,18 +106,13 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     }
 
     let data = await response.json();
-    console.log('------------------------------------');
-    console.log('RESPONSE FROM OPENAI:');
-    console.log(data.choices[0].message.content);
-    console.log('------------------------------------');
+    const initialResponse = data.choices[0].message.content;
     
     // If two-pass generation is enabled, send a follow-up message to verify and improve results
     if (ENABLE_TWO_PASS_GENERATION) {
       console.log('Sending follow-up message for verification...');
       
-      const initialResponse = data.choices[0].message.content;
-      
-      const verificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      const verificationFetchResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,18 +154,30 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
         })
       });
       
-      if (!verificationResponse.ok) {
+      if (!verificationFetchResponse.ok) {
         console.log('Verification response failed, using initial response');
       } else {
-        const verificationData = await verificationResponse.json();
+        const verificationData = await verificationFetchResponse.json();
+        const verificationContent = verificationData.choices[0].message.content;
+        
+        // Display comparison between initial and verification results
         console.log('------------------------------------');
-        console.log('VERIFICATION RESPONSE FROM OPENAI:');
-        console.log(verificationData.choices[0].message.content);
+        console.log('SYNONYMS GENERATION COMPARISON:');
+        console.log('Initial response:');
+        console.log(initialResponse);
+        console.log('\nVerification response:');
+        console.log(verificationContent);
         console.log('------------------------------------');
         
         // Use the verification response instead
         data = verificationData;
       }
+    } else {
+      // If two-pass is disabled, just log the initial response
+      console.log('------------------------------------');
+      console.log('SYNONYMS GENERATION RESULT:');
+      console.log(initialResponse);
+      console.log('------------------------------------');
     }
 
     // Parse the response text into structured format
