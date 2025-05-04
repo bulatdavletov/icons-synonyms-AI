@@ -54,10 +54,6 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     const promptData = getIconSynonymsPrompt(params.name, params.existingDescription);
     
     // Log the messages being sent to OpenAI
-    console.log('Sending to OpenAI:');
-    console.log('System Message:', promptData.systemMessage);
-    console.log('User Prompt:', promptData.userPrompt);
-    console.log('Model:', params.model || 'gpt-4.1-mini');
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -106,11 +102,10 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     }
 
     let data = await response.json();
-    const initialResponse = data.choices[0].message.content;
+    const firstResponse = data.choices[0].message.content;
     
     // If two-pass generation is enabled, send a follow-up message to verify and improve results
     if (ENABLE_TWO_PASS_GENERATION) {
-      console.log('Sending follow-up message for verification...');
       
       const verificationFetchResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -142,7 +137,7 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
             },
             {
               role: 'assistant',
-              content: initialResponse
+              content: firstResponse
             },
             {
               role: 'user',
@@ -158,15 +153,13 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
         console.log('Verification response failed, using initial response');
       } else {
         const verificationData = await verificationFetchResponse.json();
-        const verificationContent = verificationData.choices[0].message.content;
+        const secondResponse = verificationData.choices[0].message.content;
         
         // Display comparison between initial and verification results
         console.log('------------------------------------');
-        console.log('SYNONYMS GENERATION COMPARISON:');
-        console.log('Initial response:');
-        console.log(initialResponse);
-        console.log('\nVerification response:');
-        console.log(verificationContent);
+        console.log('First and second response:');
+        console.log(firstResponse);
+        console.log(secondResponse);
         console.log('------------------------------------');
         
         // Use the verification response instead
@@ -175,8 +168,8 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
     } else {
       // If two-pass is disabled, just log the initial response
       console.log('------------------------------------');
-      console.log('SYNONYMS GENERATION RESULT:');
-      console.log(initialResponse);
+      console.log('RESULT:');
+      console.log(firstResponse);
       console.log('------------------------------------');
     }
 

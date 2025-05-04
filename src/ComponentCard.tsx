@@ -1,7 +1,7 @@
 import { h, Fragment } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
 import { Text, VerticalSpace, Button, Textbox, TextboxMultiline, IconWarningSmall24, IconRefresh16, IconComponent16, IconComponentSet16, IconInstance16, LoadingIndicator, IconButton, Layer } from '@create-figma-plugin/ui'
-import { emit } from '@create-figma-plugin/utilities'
+import { emit, on } from '@create-figma-plugin/utilities'
 import type { ComponentWithSynonyms, ComponentInfo } from './types'
 
 interface Props {
@@ -25,17 +25,12 @@ export function ComponentCard({
   const [usedSynonyms, setUsedSynonyms] = useState<string[]>([])
   const [isDescriptionChanged, setIsDescriptionChanged] = useState(false)
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
+  // New states for image preview
+  const [imageData, setImageData] = useState<string | null>(null)
+  const [isLoadingImage, setIsLoadingImage] = useState(false)
 
   // Update the editable description when the component description changes from outside
   useEffect(() => {
-    console.log('Component description changed:', {
-      id: component.id,
-      type: component.type,
-      description: component.description,
-      hasMainComponent: component.type === 'INSTANCE',
-      mainComponentId: component.mainComponentId,
-      componentSetId: component.componentSetId
-    })
     
     setEditableDescription(component.description || '')
     setOriginalDescription(component.description || '')
@@ -47,6 +42,10 @@ export function ComponentCard({
     setUsedSynonyms([])
     // Reset selected layer when component changes
     setSelectedLayerId(null)
+    // Reset image data when component changes
+    setImageData(null)
+    // Request image for the component
+    requestComponentImage()
   }, [component.id])
 
   // Add click outside listener to reset selected layer
@@ -61,6 +60,28 @@ export function ComponentCard({
       document.removeEventListener('click', handleClickOutside)
     }
   }, [])
+
+  // Request component image from Figma
+  const requestComponentImage = () => {
+    setIsLoadingImage(true)
+    emit('get-component-image', { componentId: component.id })
+    
+    // Set up listener for the image response
+    const handleImageResponse = (data: { imageData: string, componentId: string }) => {
+      if (data.componentId === component.id) {
+        setImageData(data.imageData)
+        setIsLoadingImage(false)
+      }
+    }
+    
+    // Add listener for the image response
+    on('image-response', handleImageResponse)
+    
+    // Set a timeout to stop loading if no response
+    setTimeout(() => {
+      setIsLoadingImage(false)
+    }, 3000)
+  }
 
   // Handle selection of a synonym
   const handleSynonymSelect = (synonym: string) => {
@@ -132,23 +153,12 @@ export function ComponentCard({
     // Set this as the selected layer
     setSelectedLayerId(component.id)
     
-    console.log('Navigating to component source:', {
-      fromComponent: component.id,
-      type: component.type,
-      mainComponentId: component.mainComponentId,
-      componentSetId: component.componentSetId,
-      description: component.description
-    })
-    
     // Navigate to component set if available, or to main component
     if (component.componentSetId) {
-      console.log('Navigating to component set:', component.componentSetId)
       emit('zoom-to-component', { componentId: component.componentSetId })
     } else if (component.mainComponentId) {
-      console.log('Navigating to main component:', component.mainComponentId)
       emit('zoom-to-component', { componentId: component.mainComponentId })
     } else {
-      console.log('No target to navigate to, zooming to self')
       emit('zoom-to-component', { componentId: component.id })
     }
   }
@@ -164,80 +174,166 @@ export function ComponentCard({
         borderRadius: '4px',
         marginBottom: '8px'
       }}>
-        {/* Component name and type using Layer component */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1 }}>
-            {/* Main component name layer */}
-            <Layer
-              icon={
-                component.type === 'INSTANCE' ? <IconInstance16 /> :
-                component.type === 'COMPONENT_SET' ? <IconComponentSet16 /> : 
-                <IconComponent16 />
-              }
-              bold={true}
-              component={true}
-              value={selectedLayerId === component.id}
-              onClick={
-                component.type === 'INSTANCE' && (component.mainComponentId || component.componentSetId)
-                  ? (event) => handleNavigateToMainComponent(component, event)
-                  : (event) => handleZoomToComponent(component.id, event)
-              }
-            >
-              {component.name}
-            </Layer>
-            
-            {/* Size variant layers */}
-            {component.sizeVariants && component.sizeVariants.length > 0 && (
-              <div>
-                {component.sizeVariants.map(variant => (
-                  <Layer
-                    key={variant.id}
-                    icon={
-                      variant.type === 'INSTANCE' ? <IconInstance16 /> :
-                      variant.type === 'COMPONENT_SET' ? <IconComponentSet16 /> : 
-                      <IconComponent16 />
-                    }
-                    component={true}
-                    value={selectedLayerId === variant.id}
-                    onClick={
-                      variant.type === 'INSTANCE' && (variant.mainComponentId || variant.componentSetId)
-                        ? (event) => handleNavigateToMainComponent(variant, event)
-                        : (event) => handleZoomToComponent(variant.id, event)
-                    }
-                    description={
-                      variant.description !== component.description && variant.description 
-                        ? variant.description 
-                        : undefined
-                    }
+        {/* New layout with icon on left, content on right */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {/* Left column: Icon preview */}
+          <div style={{ 
+            flexShrink: 0,
+            width: '100px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            position: 'relative'
+          }}>
+            {/* Component preview image */}
+            <div style={{ 
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: 'var(--figma-color-bg)',
+              borderRadius: '4px',
+              width: '100px',
+              minHeight: '40px',
+              maxHeight: '120px',
+              border: '1px solid var(--figma-color-border)',
+              position: 'relative',
+            }}>
+              {isLoadingImage ? (
+                <LoadingIndicator />
+              ) : imageData ? (
+                <>
+                  <img 
+                    src={`data:image/png;base64,${imageData}`} 
+                    alt={component.name}
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '100%', 
+                      objectFit: 'contain',
+                      display: 'block'
+                    }}
+                  />
+                  <div 
+                    style={{ 
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      opacity: 0,
+                      transition: 'opacity 0.2s',
+                      transform: 'scale(0.8)',
+                    }}
+                    className="image-refresh-button"
                   >
-                    {variant.name}
-                  </Layer>
-                ))}
-              </div>
-            )}
+                    <IconButton onClick={requestComponentImage}>
+                      <IconRefresh16 />
+                    </IconButton>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Text style={{ fontSize: '10px', color: 'var(--figma-color-text-secondary)' }}>
+                    No preview
+                  </Text>
+                  <div 
+                    style={{ 
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      transform: 'scale(0.8)',
+                    }}
+                  >
+                    <IconButton onClick={requestComponentImage}>
+                      <IconRefresh16 />
+                    </IconButton>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           
-          {component.synonyms.length > 0 && (
-            <IconButton 
-              onClick={handleRegenerateSynonyms}
-              disabled={component.isLoading}
-            >
-              <IconRefresh16 />
-            </IconButton>
-          )}
+          {/* Right column: Component details */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Header with component name and regenerate button */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                {/* Main component name layer */}
+                <Layer
+                  icon={
+                    component.type === 'INSTANCE' ? <IconInstance16 /> :
+                    component.type === 'COMPONENT_SET' ? <IconComponentSet16 /> : 
+                    <IconComponent16 />
+                  }
+                  bold={true}
+                  component={true}
+                  value={selectedLayerId === component.id}
+                  onClick={
+                    component.type === 'INSTANCE' && (component.mainComponentId || component.componentSetId)
+                      ? (event) => handleNavigateToMainComponent(component, event)
+                      : (event) => handleZoomToComponent(component.id, event)
+                  }
+                >
+                  {component.name}
+                </Layer>
+                
+                {/* Size variant layers */}
+                {component.sizeVariants && component.sizeVariants.length > 0 && (
+                  <div style={{ marginLeft: '24px' }}>
+                    {component.sizeVariants.map(variant => (
+                      <Layer
+                        key={variant.id}
+                        icon={
+                          variant.type === 'INSTANCE' ? <IconInstance16 /> :
+                          variant.type === 'COMPONENT_SET' ? <IconComponentSet16 /> : 
+                          <IconComponent16 />
+                        }
+                        component={true}
+                        value={selectedLayerId === variant.id}
+                        onClick={
+                          variant.type === 'INSTANCE' && (variant.mainComponentId || variant.componentSetId)
+                            ? (event) => handleNavigateToMainComponent(variant, event)
+                            : (event) => handleZoomToComponent(variant.id, event)
+                        }
+                        description={
+                          variant.description !== component.description && variant.description 
+                            ? variant.description 
+                            : undefined
+                        }
+                      >
+                        {variant.name}
+                      </Layer>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {component.synonyms.length > 0 && (
+                <IconButton 
+                  onClick={handleRegenerateSynonyms}
+                  disabled={component.isLoading}
+                >
+                  <IconRefresh16 />
+                </IconButton>
+              )}
+            </div>
+            
+            <VerticalSpace space="extraSmall" />
+            
+            {/* Description textarea - aligned with component name */}
+            <TextboxMultiline
+              value={editableDescription}
+              placeholder="Enter a description for this component..."
+              onValueInput={handleDescriptionChange}
+              style={{ width: '100%' }}
+              grow
+              rows={Math.min(3, Math.max(1, (editableDescription.match(/\n/g) || []).length + 1))}
+            />
+          </div>
         </div>
         
-        <VerticalSpace space="small" />
-        
-        {/* Description textarea - always visible */}
-        <TextboxMultiline
-          value={editableDescription}
-          placeholder="Enter a description for this component..."
-          onValueInput={handleDescriptionChange}
-          style={{ width: '100%' }}
-          grow
-          rows={Math.min(5, Math.max(1, (editableDescription.match(/\n/g) || []).length + 1))}
-        />
+        <style>{`
+          div:hover .image-refresh-button {
+            opacity: 1;
+          }
+        `}</style>
         
         {/* Synonyms section directly in the card */}
         {(component.synonyms.length > 0 || component.isLoading || component.isError) && (

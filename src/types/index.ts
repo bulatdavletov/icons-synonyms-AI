@@ -54,6 +54,8 @@ export interface Handler {
   'description-updated': (data: { description: string, hasDescription: boolean, componentId?: string }) => void
   'get-current-synonyms': () => void
   'current-synonyms-response': (data: { synonyms: string[] }) => void
+  'get-component-image': (data: { componentId: string }) => void
+  'image-response': (data: { imageData: string, componentId: string }) => void
 }
 
 export type HandlerEvent<K extends keyof Handler> = {

@@ -43,8 +43,8 @@ function processSynonyms(synonyms: string[]): string[] {
 
 export default function () {
   showUI({
-    width: 360,
-    height: 450
+    width: 400,
+    height: 560
   })
 
   // Flag to track if UI is ready
@@ -67,9 +67,7 @@ export default function () {
     if (!isUIReady) return
     
     const selection = figma.currentPage.selection
-    
-    console.log('Selection:', selection.map(node => ({ id: node.id, name: node.name, type: node.type })))
-    
+        
     // Process selection as batch
     const components: ComponentInfo[] = []
     const componentsMap = new Map<string, ComponentInfo>()
@@ -78,13 +76,6 @@ export default function () {
     // First pass: process each selected node and identify base components and variants
     selection.forEach(node => {
       if (node.type === "COMPONENT" || node.type === "COMPONENT_SET" || node.type === "INSTANCE") {
-        console.log(`Processing ${node.type}:`, { 
-          id: node.id, 
-          name: node.name,
-          hasMainComponent: node.type === 'INSTANCE' && node.mainComponent != null,
-          mainComponentId: node.type === 'INSTANCE' ? node.mainComponent?.id : undefined,
-          mainComponentDescription: node.type === 'INSTANCE' ? node.mainComponent?.description : undefined
-        })
 
         // For instances, get description from the main component
         const hasDescription = Boolean(
@@ -105,17 +96,6 @@ export default function () {
         const normalizedName = originalName.replace(/\s+/g, '')
         const sizeInfo = hasVariant ? '@' + nameParts[1].trim() : ''
         
-        console.log('Processing node details:', { 
-          id: node.id, 
-          name: node.name, 
-          originalName,
-          normalizedName,
-          hasVariant, 
-          sizeInfo,
-          description,
-          hasDescription
-        })
-        
         const componentInfo: ComponentInfo = {
           id: node.id,
           name: node.name,  // Keep the original full name including variant size
@@ -135,11 +115,6 @@ export default function () {
           // If the instance comes from a component set, also store the component set ID
           if (node.mainComponent.parent && node.mainComponent.parent.type === "COMPONENT_SET") {
             componentInfo.componentSetId = node.mainComponent.parent.id
-            console.log('Instance has component set parent:', {
-              instanceId: node.id,
-              mainComponentId: node.mainComponent.id,
-              componentSetId: node.mainComponent.parent.id
-            })
           }
         }
         
@@ -157,9 +132,6 @@ export default function () {
     
     // Second pass: establish relationships between base components and variants
     variantsMap.forEach((variants, normalizedName) => {
-      console.log(`Group "${normalizedName}" has ${variants.length} variants:`, 
-        variants.map(v => ({ id: v.id, name: v.name, isBase: v.isBaseComponent }))
-      )
       
       // Find the base component (without @) if it exists
       const baseComponent = variants.find(comp => comp.isBaseComponent)
@@ -169,14 +141,9 @@ export default function () {
         const otherVariants = variants.filter(comp => comp.id !== baseComponent.id)
         baseComponent.sizeVariants = otherVariants
         
-        console.log(`Found base component for "${normalizedName}":`, 
-          { id: baseComponent.id, name: baseComponent.name, variantsCount: otherVariants.length }
-        )
-        
         // Add only the base component to the components list
         components.push(baseComponent)
       } else {
-        console.log(`No base component found for "${normalizedName}", adding all variants individually`)
         
         // No base component, just add all variants individually
         variants.forEach(variant => {
@@ -184,13 +151,6 @@ export default function () {
         })
       }
     })
-    
-    console.log('Final component list:', components.map(c => ({ 
-      id: c.id, 
-      name: c.name, 
-      hasVariants: Boolean(c.sizeVariants && c.sizeVariants.length > 0),
-      variantCount: c.sizeVariants?.length || 0
-    })))
     
     // Send components to UI
     emit('selection-change', components)
@@ -436,12 +396,6 @@ export default function () {
         const description = data.description || data.rawDescription || (data.synonyms ? data.synonyms.join(', ') : '')
         updateDescription(node, description)
         
-        console.log('Updating description for component:', { 
-          id: node.id, 
-          name: node.name, 
-          description 
-        })
-        
         // Send update notification for the main component
         emit('description-updated', { 
           description: description, 
@@ -457,37 +411,23 @@ export default function () {
           let baseComponentName = ''
           let sizeVariants: SceneNode[] = []
           
-          console.log('Current selection for variant updates:', 
-            selection.map(n => ({ id: n.id, name: n.name }))
-          )
-          
           // If this is a size variant, try to find the base component
           if (node.name.includes('@')) {
-            baseComponentName = node.name.split('@')[0].trim()
-            console.log(`Node "${node.name}" is a size variant, base name: "${baseComponentName}"`)
-            
+            baseComponentName = node.name.split('@')[0].trim()            
             // Try to find base component or other size variants in selection
             for (const selectedNode of selection) {
               const nodeName = selectedNode.name.split('@')[0].trim()
-              
-              console.log(`Checking node "${selectedNode.name}" against base "${baseComponentName}"`, { 
-                matches: nodeName === baseComponentName,
-                hasAtSign: selectedNode.name.includes('@'),
-                isBaseComponent: !selectedNode.name.includes('@') && nodeName === baseComponentName
-              })
               
               if (nodeName === baseComponentName) {
                 if (!selectedNode.name.includes('@') && 
                     (selectedNode.type === 'COMPONENT' || selectedNode.type === 'COMPONENT_SET')) {
                   // This is the base component (no @ in name)
                   baseComponent = selectedNode
-                  console.log('Found base component:', { id: selectedNode.id, name: selectedNode.name })
                 }
                 
                 if (selectedNode.id !== node.id) {
                   // This is another variant of the same component
                   sizeVariants.push(selectedNode)
-                  console.log('Found size variant:', { id: selectedNode.id, name: selectedNode.name })
                 }
               }
             }
@@ -495,7 +435,6 @@ export default function () {
           // If this is a base component, find all size variants
           else {
             baseComponentName = node.name.trim()
-            console.log(`Node "${node.name}" is a base component`)
             
             // Find variants in selection that share the same base name
             for (const selectedNode of selection) {
@@ -503,26 +442,17 @@ export default function () {
               
               const nodeName = selectedNode.name.split('@')[0].trim()
               
-              console.log(`Checking node "${selectedNode.name}" against base "${baseComponentName}"`, { 
-                matches: nodeName === baseComponentName,
-                hasAtSign: selectedNode.name.includes('@'),
-                isVariant: nodeName === baseComponentName && selectedNode.name.includes('@')
-              })
               
               if (nodeName === baseComponentName && selectedNode.name.includes('@')) {
                 sizeVariants.push(selectedNode)
-                console.log('Found size variant:', { id: selectedNode.id, name: selectedNode.name })
               }
             }
           }
-          
-          console.log(`Found ${sizeVariants.length} variants for ${baseComponentName}`)
           
           // Update all found variants with the same description
           for (const variantNode of sizeVariants) {
             if (variantNode.type === 'COMPONENT' || variantNode.type === 'COMPONENT_SET') {
               updateDescription(variantNode, description)
-              console.log('Updating variant description:', { id: variantNode.id, name: variantNode.name })
               
               // Notify UI about the update
               emit('description-updated', { 
@@ -588,12 +518,6 @@ export default function () {
         return
       }
       
-      console.log('Zooming to component:', { 
-        id: componentId, 
-        name: node.name, 
-        type: node.type 
-      })
-      
       // For instances, try to navigate to their component set or main component
       if (node.type === 'INSTANCE') {
         const instance = node as InstanceNode
@@ -602,20 +526,11 @@ export default function () {
         if (mainComponent) {
           // If the main component has a parent that's a component set, zoom to that
           if (mainComponent.parent && mainComponent.parent.type === 'COMPONENT_SET') {
-            console.log('Zooming to component set:', {
-              fromInstance: node.id,
-              mainComponent: mainComponent.id,
-              componentSet: mainComponent.parent.id
-            })
             figma.viewport.scrollAndZoomIntoView([mainComponent.parent])
             return
           }
           
           // Otherwise zoom to the main component
-          console.log('Zooming to main component:', {
-            fromInstance: node.id,
-            mainComponent: mainComponent.id
-          })
           figma.viewport.scrollAndZoomIntoView([mainComponent])
           return
         }
@@ -624,9 +539,41 @@ export default function () {
       // For all other node types, just zoom to the node
       figma.viewport.scrollAndZoomIntoView([node])
       
-      console.log('Zoomed to component:', { id: componentId, name: node.name })
     } catch (error) {
       console.error('Error zooming to component:', error)
+    }
+  })
+
+  // Handle component image request
+  on('get-component-image', async (data: { componentId: string }) => {
+    try {
+      const { componentId } = data
+      const node = figma.getNodeById(componentId)
+      
+      if (!node || !('exportAsync' in node)) {
+        console.error('Invalid node or node not found:', componentId)
+        return
+      }
+      
+      // Get the best node to export (use main component for instances)
+      let nodeToExport: SceneNode = node as SceneNode
+      
+      // For instances, use the main component for better quality
+      if (node.type === 'INSTANCE' && node.mainComponent) {
+        nodeToExport = node.mainComponent
+      }
+      
+      // Export the node as base64
+      const imageBase64 = await exportNodeAsBase64(nodeToExport, { scale: 2 })
+      
+      // Send the image data back to the UI
+      emit('image-response', { 
+        imageData: imageBase64,
+        componentId
+      })
+      
+    } catch (error) {
+      console.error('Error getting component image:', error)
     }
   })
 } 

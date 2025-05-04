@@ -45,12 +45,12 @@ So we can do some manipulations with it in other tools.
 
 ---
 
-If I select 2 cpomponents with similar names "toolwindow / ant" and "toolwindow / ant@20x20", I want to generate one description for both of them.
+- [x] If I select 2 cpomponents with similar names "toolwindow / ant" and "toolwindow / ant@20x20", I want to generate one description for both of them.
 
-If i click name of a component - I want to zoom in on it, without loosing current selection.
+- [x] If i click name of a component - I want to zoom in on it, without loosing current selection.
 
-If I select components, generate synonyms, and then select another components - I want to save card with generated synonyms. If component doesn't have any changes or synonyms - deselect it.
+- [ ] If I select components, generate synonyms, and then select another components - I want to save card with generated synonyms. If component doesn't have any changes or synonyms - deselect it.
 
-Save all, Generate all, Clear all?
+- [ ] Save all, Generate all, Clear all?
 
-Order of selected components is weird, don't know how to describe.
+- [ ] Order of selected components is weird, don't know how to describe.
