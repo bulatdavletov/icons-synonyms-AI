@@ -1,7 +1,7 @@
 {
-  "name": "icons-synonyms-AI",
+  "name": "icon-synonym-generator",
   "version": "1.0.0",
-  "description": "Your Figma Plugin",
+  "description": "AI-powered tool to generate relevant synonyms for icon components in Figma",
   "scripts": {
     "build": "build-figma-plugin --typecheck --minify",
     "watch": "build-figma-plugin --typecheck --watch",
@@ -24,7 +24,7 @@
   },
   "figma-plugin": {
     "id": "1481361200325156818",
-    "name": "icons-synonyms-AI",
+    "name": "Icon Synonym Generator",
     "main": "src/main.ts",
     "ui": "src/ui.tsx",
     "editorType": [

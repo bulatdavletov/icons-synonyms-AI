@@ -1,8 +1,8 @@
 import { h, Fragment } from 'preact'
 import { useState, useEffect } from 'preact/hooks'
-import { Text, VerticalSpace, Button, Textbox, TextboxMultiline, IconWarningSmall24, IconRefresh16, IconComponent16, IconComponentSet16, LoadingIndicator, IconButton } from '@create-figma-plugin/ui'
+import { Text, VerticalSpace, Button, Textbox, TextboxMultiline, IconWarningSmall24, IconRefresh16, IconComponent16, IconComponentSet16, IconInstance16, LoadingIndicator, IconButton, Layer } from '@create-figma-plugin/ui'
 import { emit } from '@create-figma-plugin/utilities'
-import type { ComponentWithSynonyms } from './types'
+import type { ComponentWithSynonyms, ComponentInfo } from './types'
 
 interface Props {
   component: ComponentWithSynonyms
@@ -24,9 +24,19 @@ export function ComponentCard({
   const [originalDescription, setOriginalDescription] = useState(component.description || '')
   const [usedSynonyms, setUsedSynonyms] = useState<string[]>([])
   const [isDescriptionChanged, setIsDescriptionChanged] = useState(false)
+  const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
 
   // Update the editable description when the component description changes from outside
   useEffect(() => {
+    console.log('Component description changed:', {
+      id: component.id,
+      type: component.type,
+      description: component.description,
+      hasMainComponent: component.type === 'INSTANCE',
+      mainComponentId: component.mainComponentId,
+      componentSetId: component.componentSetId
+    })
+    
     setEditableDescription(component.description || '')
     setOriginalDescription(component.description || '')
     setIsDescriptionChanged(false)
@@ -35,7 +45,22 @@ export function ComponentCard({
   // Reset used synonyms when component changes
   useEffect(() => {
     setUsedSynonyms([])
+    // Reset selected layer when component changes
+    setSelectedLayerId(null)
   }, [component.id])
+
+  // Add click outside listener to reset selected layer
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setSelectedLayerId(null)
+    }
+    
+    document.addEventListener('click', handleClickOutside)
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [])
 
   // Handle selection of a synonym
   const handleSynonymSelect = (synonym: string) => {
@@ -88,6 +113,46 @@ export function ComponentCard({
     onRegenerateSynonyms(component.id)
   }
 
+  // Handle zoom to component
+  const handleZoomToComponent = (componentId: string, event: MouseEvent) => {
+    // Stop event propagation to prevent the document click handler from firing
+    event.stopPropagation()
+    
+    // Set this as the selected layer
+    setSelectedLayerId(componentId)
+    
+    emit('zoom-to-component', { componentId })
+  }
+
+  // Handle navigation to main component for instances
+  const handleNavigateToMainComponent = (component: ComponentInfo, event: MouseEvent) => {
+    // Stop event propagation to prevent the document click handler from firing
+    event.stopPropagation()
+    
+    // Set this as the selected layer
+    setSelectedLayerId(component.id)
+    
+    console.log('Navigating to component source:', {
+      fromComponent: component.id,
+      type: component.type,
+      mainComponentId: component.mainComponentId,
+      componentSetId: component.componentSetId,
+      description: component.description
+    })
+    
+    // Navigate to component set if available, or to main component
+    if (component.componentSetId) {
+      console.log('Navigating to component set:', component.componentSetId)
+      emit('zoom-to-component', { componentId: component.componentSetId })
+    } else if (component.mainComponentId) {
+      console.log('Navigating to main component:', component.mainComponentId)
+      emit('zoom-to-component', { componentId: component.mainComponentId })
+    } else {
+      console.log('No target to navigate to, zooming to self')
+      emit('zoom-to-component', { componentId: component.id })
+    }
+  }
+
   return (
     <Fragment>
       {/* Component card header */}
@@ -99,14 +164,59 @@ export function ComponentCard({
         borderRadius: '4px',
         marginBottom: '8px'
       }}>
-        {/* Component name and type */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-            {component.type === 'COMPONENT_SET' ? <IconComponentSet16 /> : <IconComponent16 />}
-            <Text style={{ flex: 1 }}>
-              <strong>{component.name}</strong>
-            </Text>
+        {/* Component name and type using Layer component */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            {/* Main component name layer */}
+            <Layer
+              icon={
+                component.type === 'INSTANCE' ? <IconInstance16 /> :
+                component.type === 'COMPONENT_SET' ? <IconComponentSet16 /> : 
+                <IconComponent16 />
+              }
+              bold={true}
+              component={true}
+              value={selectedLayerId === component.id}
+              onClick={
+                component.type === 'INSTANCE' && (component.mainComponentId || component.componentSetId)
+                  ? (event) => handleNavigateToMainComponent(component, event)
+                  : (event) => handleZoomToComponent(component.id, event)
+              }
+            >
+              {component.name}
+            </Layer>
+            
+            {/* Size variant layers */}
+            {component.sizeVariants && component.sizeVariants.length > 0 && (
+              <div>
+                {component.sizeVariants.map(variant => (
+                  <Layer
+                    key={variant.id}
+                    icon={
+                      variant.type === 'INSTANCE' ? <IconInstance16 /> :
+                      variant.type === 'COMPONENT_SET' ? <IconComponentSet16 /> : 
+                      <IconComponent16 />
+                    }
+                    component={true}
+                    value={selectedLayerId === variant.id}
+                    onClick={
+                      variant.type === 'INSTANCE' && (variant.mainComponentId || variant.componentSetId)
+                        ? (event) => handleNavigateToMainComponent(variant, event)
+                        : (event) => handleZoomToComponent(variant.id, event)
+                    }
+                    description={
+                      variant.description !== component.description && variant.description 
+                        ? variant.description 
+                        : undefined
+                    }
+                  >
+                    {variant.name}
+                  </Layer>
+                ))}
+              </div>
+            )}
           </div>
+          
           {component.synonyms.length > 0 && (
             <IconButton 
               onClick={handleRegenerateSynonyms}

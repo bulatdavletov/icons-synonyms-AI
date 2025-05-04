@@ -16,6 +16,12 @@ export function Home({ onSettingsClick }: HomeProps) {
   const [error, setError] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
 
+  // Tell the plugin that the UI is ready when the component mounts
+  useEffect(() => {
+    // Emit ui-ready event to notify the plugin that the UI is ready
+    emit('ui-ready')
+  }, [])
+
   // Handle selection and component data management
   useEffect(() => {
     // Listen for selection changes

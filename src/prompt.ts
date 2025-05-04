@@ -17,7 +17,7 @@ export const DEFAULT_USER_PROMPT = `
   - Don't use words like "icon", "symbol", "image", "outline", "shape", because they are not relevant to the icon's purpose
   - Always describe color, if it's other than gray (e.g. "folder with blue gear"). Don't add grey as a color, because all icons are gray by default.
   - Always describe direction of arrows (e.g., "arrow down with bracket")
-  Good examples: "arrow up right with corner", "trash bin", "arrow down with letters A and letter Z", "2 rectangles with horizontal line"
+  Good examples: "arrow up right with corner", "trash bin", "arrow down with letters A and letter Z", "2 rectangles with horizontal line", "blue isometric cube"
 
 - [Optional] Other items: What the icon is typically used for in UI (e.g., "settings", "delete", "add")
 `;

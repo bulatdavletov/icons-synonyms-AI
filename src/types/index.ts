@@ -20,6 +20,16 @@ export interface ComponentInfo {
   type: string
   description: string
   hasDescription: boolean
+  // New fields for variants handling
+  baseComponentId?: string // ID of the base component (without size variants)
+  isBaseComponent?: boolean // Whether this is the base component (no @ in name)
+  sizeVariants?: ComponentInfo[] // Related size variants
+  originalName?: string // Original name without size info
+  normalizedName?: string // Original name without spaces (for matching)
+  sizeInfo?: string // Size information (e.g., @20x20)
+  // Fields for instances
+  mainComponentId?: string // ID of the main component for instances
+  componentSetId?: string // ID of the component set for instances
 }
 
 // Extended component info with generation status and synonyms
@@ -35,6 +45,7 @@ export interface ComponentWithSynonyms extends ComponentInfo {
 export type ComponentsMap = Map<string, ComponentWithSynonyms>
 
 export interface Handler {
+  'ui-ready': () => void
   'selection-change': (components: ComponentInfo[]) => void
   'generate-synonyms': (componentIds: string[]) => void
   'synonyms-generated': (data: { synonyms: string[], componentId?: string }) => void
