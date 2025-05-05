@@ -22,6 +22,17 @@ export const DEFAULT_USER_PROMPT = `
 - [Optional] Other items: What the icon is typically used for in UI (e.g., "settings", "delete", "add")
 `;
 
+export const SECOND_PROMPT = `
+  Please review the answer. 
+  Make sure that all the rules from the first message are followed. 
+  Double check:
+  - Color is included if it's not gray
+  - Direction of arrows is included
+  - Words like "outlined", "filled" are excluded
+  - Numbers are used as numbers, not words, e.g. "2" instead of "two"
+  If your previous answer already meets these criteria, you can return it unchanged.
+`;
+
 /**
  * Generate a prompt for icon synonym generation
  * @param iconName The name of the icon

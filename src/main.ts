@@ -295,7 +295,7 @@ export default function () {
       const model = await figma.clientStorage.getAsync(AI_MODEL_KEY) || 'gpt-4.1-mini'
       
       // Find the node by ID
-      const node = figma.getNodeById(nodeId)
+      const node = await figma.getNodeByIdAsync(nodeId)
       
       if (!node || (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET' && node.type !== 'INSTANCE')) {
         emit('generate-error', {
@@ -386,7 +386,7 @@ export default function () {
     try {
       // Batch mode: Update a specific component
       if (data.componentId) {
-        const node = figma.getNodeById(data.componentId)
+        const node = await figma.getNodeByIdAsync(data.componentId)
         
         if (!node || (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET')) {
           emit('generate-error', { error: 'Component not found or not a valid component' })
@@ -511,7 +511,7 @@ export default function () {
   on('zoom-to-component', async (data: { componentId: string }) => {
     try {
       const { componentId } = data
-      const node = figma.getNodeById(componentId)
+      const node = await figma.getNodeByIdAsync(componentId)
       
       if (!node || !('visible' in node)) {
         console.error('Invalid node or node not found:', componentId)
@@ -548,7 +548,7 @@ export default function () {
   on('get-component-image', async (data: { componentId: string }) => {
     try {
       const { componentId } = data
-      const node = figma.getNodeById(componentId)
+      const node = await figma.getNodeByIdAsync(componentId)
       
       if (!node || !('exportAsync' in node)) {
         console.error('Invalid node or node not found:', componentId)

@@ -29,6 +29,12 @@
     "ui": "src/ui.tsx",
     "editorType": [
       "figma"
-    ]
+    ],
+    "networkAccess": {
+      "allowedDomains": [
+        "https://api.openai.com"
+      ]
+    },
+    "documentAccess": "dynamic-page"
   }
 }

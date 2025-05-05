@@ -1,5 +1,5 @@
 // AI Service for handling OpenAI integration
-import { getIconSynonymsPrompt } from '../prompt';
+import { getIconSynonymsPrompt, SECOND_PROMPT } from '../prompt';
 
 // Set to true to enable two-pass generation (second message to verify and improve results)
 const ENABLE_TWO_PASS_GENERATION = true;
@@ -141,8 +141,7 @@ export async function generateSynonyms(params: GenerateSynonymsParams): Promise<
             },
             {
               role: 'user',
-              content: 
-                "Please review your previous answer. Make sure you've followed all the rules from the message. Return a comma-separated list of synonyms that are precise, concise, and relevant to the icon shown. If your previous answer already meets these criteria, you can return it unchanged."
+              content: SECOND_PROMPT
             }
           ],
           max_tokens: 300

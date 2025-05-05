@@ -1,1 +1,1 @@
-{"api":"1.0.0","editorType":["figma"],"id":"1481361200325156818","name":"Icon Synonym Generator","main":"build/main.js","ui":"build/ui.js"}
+{"api":"1.0.0","editorType":["figma"],"id":"1481361200325156818","name":"Icon Synonym Generator","main":"build/main.js","ui":"build/ui.js","networkAccess":{"allowedDomains":["https://api.openai.com"]},"documentAccess":"dynamic-page"}

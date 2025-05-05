@@ -320,7 +320,7 @@ export function ComponentCard({
             {/* Description textarea - aligned with component name */}
             <TextboxMultiline
               value={editableDescription}
-              placeholder="Enter a description for this component..."
+              placeholder="Enter a description"
               onValueInput={handleDescriptionChange}
               style={{ width: '100%' }}
               grow
